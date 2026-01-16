@@ -1,0 +1,103 @@
+# API Configuration
+api:
+  provider: "anthropic"  # "anthropic" or "openai"
+  api_key: ""  # Leave empty, user will input in web UI
+  model: "claude-3-opus-20240229"
+  temperature: 0.7
+  max_tokens: 4096
+
+# Local API Proxy Configuration
+proxy:
+  base_url: ""  # Leave empty, user will input in web UI (e.g., http://127.0.0.1:13148/v1)
+  api_key: ""  # Leave empty, user will input in web UI
+  timeout: 120
+
+# Model Selection (Optimized for Cost-Quality Balance)
+models:
+  style_analysis: "gpt-4o"           # Complex pattern recognition
+  literature_import: "claude-sonnet-4"  # Structured extraction
+  intro_writing: "deepseek-chat"     # Creative + cost-effective
+  methods_writing: "claude-sonnet-4"  # Technical precision
+  results_writing: "gpt-4o"           # Numerical reasoning
+  discussion_writing: "claude-3-5-sonnet"  # Nuanced argumentation
+  integration: "claude-sonnet-4"      # Consistency checking
+  citation_validation: "deepseek-reasoner"  # Reasoning + cost-effective
+
+# Fallback Models (in case primary fails)
+fallback:
+  enabled: true
+  models:
+    style_analysis: ["claude-3-5-sonnet", "gpt-4o-mini"]
+    literature_import: ["gpt-4o", "deepseek-chat"]
+    intro_writing: ["claude-3-5-sonnet", "gpt-4o-mini"]
+    methods_writing: ["gpt-4o", "claude-3-5-sonnet"]
+    results_writing: ["claude-3-5-sonnet", "claude-sonnet-4"]
+    discussion_writing: ["gpt-4o", "claude-sonnet-4"]
+    integration: ["gpt-4o", "claude-3-5-sonnet"]
+    citation_validation: ["deepseek-chat", "gpt-4o-mini"]
+
+# Document Processing (UnstructuredIO)
+document_processing:
+  provider: "local"  # "unstructured" for API, "local" for installed library
+  api_url: "http://localhost:8000"  # UnstructuredIO API server
+  strategy: "auto"  # fast, auto, hi_res, ocr_only
+  timeout: 300
+
+# Path Configuration
+paths:
+  input_dir: "input"
+  output_dir: "output"
+  style_dir: "output/style"
+  sections_dir: "output/sections"
+  final_dir: "output/final"
+
+# Agent Configuration
+agents:
+  coordinator:
+    timeout: 300  # seconds
+    max_retries: 3
+    retry_delay: 5  # seconds
+  workers:
+    introduction:
+      target_words_min: 500
+      target_words_max: 700
+    methods:
+      target_words_min: 800
+      target_words_max: 1200
+    results:
+      target_words_min: 1000
+      target_words_max: 1500
+    discussion:
+      target_words_min: 1200
+      target_words_max: 1800
+    abstract:
+      target_words_min: 200
+      target_words_max: 300
+
+# Quality Thresholds
+quality:
+  thresholds:
+    completeness: 0.80
+    style_match: 0.75
+    citation_accuracy: 0.95
+    scientific_rigor: 0.85
+    overall: 0.85
+
+# Citation Style
+citation:
+  style: "author-year"  # "author-year" or "numbered"
+  format: "(Author, Year)"  # or "[1]"
+  separator: "; "
+  et_al_threshold: 10  # Use et al. after this many authors
+
+# Logging
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "logs/paper_writer.log"
+
+# Output Configuration
+output:
+  format: "markdown"  # "markdown" or "latex"
+  include_references: true
+  include_abstract: true

@@ -1,0 +1,762 @@
+{
+  "metadata": {
+    "journal_name": "Nature Communications",
+    "analysis_date": "2026-01-16 17:53:48",
+    "papers_analyzed": 5
+  },
+  "vocabulary": {
+    "high_frequency_nouns": [
+      {
+        "term": "soil",
+        "count": 470
+      },
+      {
+        "term": "warming",
+        "count": 138
+      },
+      {
+        "term": "figure",
+        "count": 109
+      },
+      {
+        "term": "temperature",
+        "count": 106
+      },
+      {
+        "term": "soils",
+        "count": 80
+      },
+      {
+        "term": "emissions",
+        "count": 78
+      },
+      {
+        "term": "effect",
+        "count": 76
+      },
+      {
+        "term": "fluxes",
+        "count": 74
+      },
+      {
+        "term": "mineralization",
+        "count": 69
+      },
+      {
+        "term": "nitrification",
+        "count": 59
+      },
+      {
+        "term": "denitrification",
+        "count": 51
+      },
+      {
+        "term": "cycling",
+        "count": 50
+      },
+      {
+        "term": "effects",
+        "count": 45
+      },
+      {
+        "term": "availability",
+        "count": 43
+      },
+      {
+        "term": "plants",
+        "count": 41
+      },
+      {
+        "term": "root",
+        "count": 40
+      },
+      {
+        "term": "ratio",
+        "count": 37
+      },
+      {
+        "term": "abundance",
+        "count": 37
+      },
+      {
+        "term": "genes",
+        "count": 36
+      },
+      {
+        "term": "rates",
+        "count": 35
+      },
+      {
+        "term": "respiration",
+        "count": 34
+      },
+      {
+        "term": "processes",
+        "count": 33
+      },
+      {
+        "term": "biomass",
+        "count": 32
+      },
+      {
+        "term": "gene",
+        "count": 29
+      },
+      {
+        "term": "water",
+        "count": 28
+      },
+      {
+        "term": "rainfall",
+        "count": 28
+      },
+      {
+        "term": "climate",
+        "count": 25
+      },
+      {
+        "term": "studies",
+        "count": 24
+      },
+      {
+        "term": "ecosystems",
+        "count": 24
+      },
+      {
+        "term": "flux",
+        "count": 24
+      },
+      {
+        "term": "moisture",
+        "count": 23
+      },
+      {
+        "term": "production",
+        "count": 23
+      },
+      {
+        "term": "amoa",
+        "count": 23
+      },
+      {
+        "term": "response",
+        "count": 22
+      },
+      {
+        "term": "analysis",
+        "count": 22
+      },
+      {
+        "term": "year",
+        "count": 22
+      },
+      {
+        "term": "size",
+        "count": 22
+      },
+      {
+        "term": "results",
+        "count": 21
+      },
+      {
+        "term": "forest",
+        "count": 21
+      },
+      {
+        "term": "plant",
+        "count": 20
+      },
+      {
+        "term": "fertilization",
+        "count": 19
+      },
+      {
+        "term": "alpine",
+        "count": 19
+      },
+      {
+        "term": "input",
+        "count": 18
+      },
+      {
+        "term": "drought",
+        "count": 18
+      },
+      {
+        "term": "croplands",
+        "count": 18
+      },
+      {
+        "term": "waterlogging",
+        "count": 18
+      },
+      {
+        "term": "period",
+        "count": 17
+      },
+      {
+        "term": "conditions",
+        "count": 17
+      },
+      {
+        "term": "nirs",
+        "count": 17
+      },
+      {
+        "term": "grassland",
+        "count": 16
+      }
+    ],
+    "high_frequency_verbs": [
+      {
+        "term": "increase",
+        "count": 126
+      },
+      {
+        "term": "warm",
+        "count": 80
+      },
+      {
+        "term": "wet",
+        "count": 58
+      },
+      {
+        "term": "dry",
+        "count": 47
+      },
+      {
+        "term": "download",
+        "count": 40
+      },
+      {
+        "term": "see",
+        "count": 39
+      },
+      {
+        "term": "govern",
+        "count": 38
+      },
+      {
+        "term": "induce",
+        "count": 35
+      },
+      {
+        "term": "affect",
+        "count": 33
+      },
+      {
+        "term": "show",
+        "count": 29
+      },
+      {
+        "term": "elevate",
+        "count": 26
+      },
+      {
+        "term": "indicate",
+        "count": 25
+      },
+      {
+        "term": "use",
+        "count": 23
+      },
+      {
+        "term": "suggest",
+        "count": 23
+      },
+      {
+        "term": "represent",
+        "count": 22
+      },
+      {
+        "term": "decrease",
+        "count": 22
+      },
+      {
+        "term": "find",
+        "count": 21
+      },
+      {
+        "term": "enhance",
+        "count": 20
+      },
+      {
+        "term": "lead",
+        "count": 17
+      },
+      {
+        "term": "report",
+        "count": 17
+      },
+      {
+        "term": "reduce",
+        "count": 14
+      },
+      {
+        "term": "relate",
+        "count": 14
+      },
+      {
+        "term": "promote",
+        "count": 13
+      },
+      {
+        "term": "grow",
+        "count": 12
+      },
+      {
+        "term": "observe",
+        "count": 12
+      },
+      {
+        "term": "compare",
+        "count": 12
+      },
+      {
+        "term": "regulate",
+        "count": 12
+      },
+      {
+        "term": "follow",
+        "count": 11
+      },
+      {
+        "term": "associate",
+        "count": 11
+      },
+      {
+        "term": "include",
+        "count": 10
+      }
+    ],
+    "high_frequency_adjectives": [
+      {
+        "term": "microbial",
+        "count": 140
+      },
+      {
+        "term": "elevated",
+        "count": 69
+      },
+      {
+        "term": "higher",
+        "count": 56
+      },
+      {
+        "term": "organic",
+        "count": 49
+      },
+      {
+        "term": "high",
+        "count": 40
+      },
+      {
+        "term": "applicable",
+        "count": 38
+      },
+      {
+        "term": "global",
+        "count": 36
+      },
+      {
+        "term": "significant",
+        "count": 36
+      },
+      {
+        "term": "whole",
+        "count": 36
+      },
+      {
+        "term": "low",
+        "count": 28
+      },
+      {
+        "term": "net",
+        "count": 25
+      },
+      {
+        "term": "cumulative",
+        "count": 25
+      },
+      {
+        "term": "positive",
+        "count": 20
+      },
+      {
+        "term": "annual",
+        "count": 20
+      },
+      {
+        "term": "different",
+        "count": 19
+      },
+      {
+        "term": "dry",
+        "count": 19
+      },
+      {
+        "term": "terrestrial",
+        "count": 19
+      },
+      {
+        "term": "wet",
+        "count": 19
+      },
+      {
+        "term": "extreme",
+        "count": 16
+      },
+      {
+        "term": "nitrous",
+        "count": 15
+      },
+      {
+        "term": "functional",
+        "count": 15
+      },
+      {
+        "term": "experimental",
+        "count": 14
+      },
+      {
+        "term": "greater",
+        "count": 13
+      },
+      {
+        "term": "meta",
+        "count": 12
+      },
+      {
+        "term": "normal",
+        "count": 12
+      },
+      {
+        "term": "large",
+        "count": 11
+      },
+      {
+        "term": "heterotrophic",
+        "count": 11
+      },
+      {
+        "term": "https://onlinelibrary.wiley.com/doi/10.1111/gcb.70164",
+        "count": 10
+      },
+      {
+        "term": "lower",
+        "count": 9
+      },
+      {
+        "term": "ing",
+        "count": 8
+      },
+      {
+        "term": "tropical",
+        "count": 8
+      },
+      {
+        "term": "natural",
+        "count": 8
+      },
+      {
+        "term": "non",
+        "count": 8
+      },
+      {
+        "term": "autotrophic",
+        "count": 8
+      },
+      {
+        "term": "small",
+        "count": 7
+      },
+      {
+        "term": "inorganic",
+        "count": 7
+      },
+      {
+        "term": "growing",
+        "count": 7
+      },
+      {
+        "term": "relevant",
+        "count": 7
+      },
+      {
+        "term": "consistent",
+        "count": 7
+      },
+      {
+        "term": "nirk",
+        "count": 7
+      }
+    ],
+    "high_frequency_adverbs": [
+      {
+        "term": "also",
+        "count": 44
+      },
+      {
+        "term": "significantly",
+        "count": 39
+      },
+      {
+        "term": "however",
+        "count": 29
+      },
+      {
+        "term": "thus",
+        "count": 19
+      },
+      {
+        "term": "respectively",
+        "count": 16
+      },
+      {
+        "term": "therefore",
+        "count": 16
+      },
+      {
+        "term": "directly",
+        "count": 15
+      },
+      {
+        "term": "often",
+        "count": 14
+      },
+      {
+        "term": "additionally",
+        "count": 12
+      },
+      {
+        "term": "mainly",
+        "count": 11
+      },
+      {
+        "term": "likely",
+        "count": 9
+      },
+      {
+        "term": "especially",
+        "count": 9
+      },
+      {
+        "term": "positively",
+        "count": 8
+      },
+      {
+        "term": "relatively",
+        "count": 8
+      },
+      {
+        "term": "well",
+        "count": 8
+      },
+      {
+        "term": "e.g.",
+        "count": 8
+      },
+      {
+        "term": "rather",
+        "count": 7
+      },
+      {
+        "term": "moreover",
+        "count": 7
+      },
+      {
+        "term": "furthermore",
+        "count": 7
+      },
+      {
+        "term": "strongly",
+        "count": 6
+      },
+      {
+        "term": "particularly",
+        "count": 6
+      },
+      {
+        "term": "together",
+        "count": 6
+      },
+      {
+        "term": "highly",
+        "count": 6
+      },
+      {
+        "term": "even",
+        "count": 4
+      },
+      {
+        "term": "greatly",
+        "count": 4
+      },
+      {
+        "term": "marginally",
+        "count": 3
+      },
+      {
+        "term": "generally",
+        "count": 3
+      },
+      {
+        "term": "mostly",
+        "count": 3
+      },
+      {
+        "term": "presumably",
+        "count": 3
+      },
+      {
+        "term": "permanently",
+        "count": 3
+      },
+      {
+        "term": "simply",
+        "count": 3
+      },
+      {
+        "term": "longer",
+        "count": 3
+      },
+      {
+        "term": "probably",
+        "count": 3
+      },
+      {
+        "term": "nificantly",
+        "count": 3
+      },
+      {
+        "term": "thereby",
+        "count": 3
+      },
+      {
+        "term": "indirectly",
+        "count": 3
+      },
+      {
+        "term": "singly",
+        "count": 3
+      },
+      {
+        "term": "tively",
+        "count": 3
+      },
+      {
+        "term": "microbially",
+        "count": 3
+      },
+      {
+        "term": "finally",
+        "count": 2
+      }
+    ],
+    "hedging_terms": [
+      {
+        "term": "may",
+        "count": 61
+      },
+      {
+        "term": "could",
+        "count": 37
+      },
+      {
+        "term": "suggest",
+        "count": 30
+      },
+      {
+        "term": "indicated",
+        "count": 12
+      },
+      {
+        "term": "tend",
+        "count": 11
+      },
+      {
+        "term": "rather",
+        "count": 11
+      },
+      {
+        "term": "would",
+        "count": 11
+      },
+      {
+        "term": "relatively",
+        "count": 10
+      },
+      {
+        "term": "tended",
+        "count": 8
+      },
+      {
+        "term": "might",
+        "count": 8
+      },
+      {
+        "term": "indicates",
+        "count": 7
+      },
+      {
+        "term": "suggested",
+        "count": 7
+      },
+      {
+        "term": "suggests",
+        "count": 5
+      },
+      {
+        "term": "about",
+        "count": 5
+      },
+      {
+        "term": "appear",
+        "count": 5
+      },
+      {
+        "term": "probably",
+        "count": 4
+      },
+      {
+        "term": "approximately",
+        "count": 3
+      },
+      {
+        "term": "possibly",
+        "count": 3
+      },
+      {
+        "term": "seem",
+        "count": 3
+      },
+      {
+        "term": "appears",
+        "count": 2
+      }
+    ],
+    "prepositions": []
+  },
+  "tense_distribution": {},
+  "transition_words": {},
+  "conjunctions": {},
+  "sentence_analysis": {
+    "sentence_length_distribution": {},
+    "sentence_types": {}
+  },
+  "sentence_structure": {
+    "average_sentence_length": 21.46,
+    "passive_voice_ratio": 0.0,
+    "papers_analyzed": 5
+  },
+  "section_conventions": {},
+  "citation_style": {
+    "citation_type": "author-year",
+    "in_text_patterns": [],
+    "reference_format": "nature",
+    "example_in_text_citation": "",
+    "example_reference": "",
+    "latex_citation_command": "\\citep",
+    "latex_bibliography_env": "thebibliography"
+  }
+}

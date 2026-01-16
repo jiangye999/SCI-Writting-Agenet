@@ -1,0 +1,40 @@
+# Paper Writing Assistant - 依赖列表
+
+# Core Dependencies - 核心依赖
+anthropic-sdk>=0.2.0
+openpyxl>=3.0.0
+pandas>=1.5.0
+PyYAML>=6.0
+spacy>=3.5.0
+nltk>=3.8.0
+
+# Database - 数据库
+sqlite-utils>=3.0
+
+# CLI and Configuration - 命令行和配置
+click>=8.0.0
+rich>=13.0.0
+
+# Utilities - 工具类
+tqdm>=4.65.0
+colorlog>=6.7.0
+requests>=2.31.0
+
+# Web UI - 网页界面
+streamlit>=1.28.0
+
+# Document Processing - 文档处理
+pdfplumber>=0.7.0
+python-docx>=1.1.0
+
+# Testing - 测试（可选）
+pytest>=7.0.0
+pytest-cov>=4.0.0
+
+# Build - 打包（可选）
+pyinstaller>=6.0.0
+
+# Development - 开发工具（可选）
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.0.0

@@ -1,0 +1,49 @@
+{
+  "metadata": {
+    "integration_time": "2026-01-15T14:48:56.917828",
+    "total_words": 1298,
+    "overall_quality_score": 0.83
+  },
+  "structure_analysis": {
+    "sections_present": [
+      "introduction",
+      "methods",
+      "results",
+      "discussion"
+    ],
+    "word_counts": {
+      "introduction": 214,
+      "methods": 288,
+      "results": 261,
+      "discussion": 499
+    },
+    "total_words": 1262
+  },
+  "transition_analysis": {
+    "transition_counts": {
+      "sequential": 8,
+      "contrastive": 7,
+      "additive": 3,
+      "causal": 1,
+      "exemplifying": 5
+    },
+    "total_transitions": 24,
+    "transition_density": 1.9,
+    "section_transitions": {
+      "introduction->methods": false,
+      "methods->results": false,
+      "results->discussion": false
+    },
+    "transition_score": 0.9501187648456058
+  },
+  "consistency_report": {
+    "total_issues": 2,
+    "critical": 0,
+    "warnings": 2,
+    "auto_fixed": 2
+  },
+  "issues_for_review": [],
+  "recommendations": [
+    "文章较短，建议增加内容深度"
+  ]
+}
