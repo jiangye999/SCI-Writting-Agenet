@@ -1,0 +1,35 @@
+# Exclude specific markdown files (but keep README.md and docs/)
+*.md
+!README.md
+!docs/*.md
+
+# Exclude test files
+test_*.py
+*_test.py
+tests/
+
+# Exclude pycache
+__pycache__/
+*.pyc
+
+# Exclude output files
+output/
+*.db
+
+# Exclude exe build files
+build/
+dist/
+
+# Exclude config and requirements for deployment
+requirements.txt
+build_exe.py
+pytest.ini
+
+# Exclude specific files
+AGENTS.md
+journal_section_style_skill.md
+simple_test_guide.md
+fix_indentation.py
+explain_r2r_and_skill.py
+test_*.py
+*_test.py
