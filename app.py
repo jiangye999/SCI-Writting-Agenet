@@ -39,33 +39,123 @@ from literature import create_literature_database, LiteratureDatabaseManager
 # from integrator import DraftIntegrator  # 暂时注释掉
 
 
-def detect_available_models():
-    """检测用户中转站可用的模型列表"""
+def detect_available_models(api_url: str = None, api_key: str = None):
+    """
+    检测用户中转站可用的模型列表
+    如果提供了API配置，会自动调用API获取可用模型
+    """
+    # 如果没有提供API配置，返回默认列表
+    if not api_url or not api_key:
+        return get_default_models()
+
+    # 清理URL
+    base_url = api_url.rstrip("/")
+    if not base_url.endswith("/v1"):
+        base_url = base_url + "/v1"
+
     try:
-        # 这里可以实现检测逻辑
-        # 暂时返回常用模型列表
-        return [
-            ("GPT-4o", "GPT-4o - 平衡性能，适合大多数任务"),
-            ("GPT-4o-mini", "GPT-4o-mini - 快速经济，适合简单任务"),
-            ("Claude-Sonnet-4.5", "Claude-Sonnet-4.5 - 批判性思维，适合复杂分析"),
-            ("Claude-Opus-4.5", "Claude-Opus-4.5 - 最高质量，适合重要章节"),
-            ("Claude-Sonnet-4", "Claude-Sonnet-4 - 强推理能力"),
-            ("deepseek-chat", "DeepSeek-V3 - 经济高效"),
-        ]
+        # 调用API获取模型列表
+        models_url = f"{base_url}/models"
+        headers = {"Authorization": f"Bearer {api_key}"}
+
+        response = requests.get(models_url, headers=headers, timeout=10)
+
+        if response.status_code == 200:
+            data = response.json()
+            models = []
+
+            # 解析API返回的模型列表
+            if "data" in data:
+                for model in data["data"]:
+                    model_id = model.get("id", "")
+                    model_name = model.get("id", "")
+
+                    # 为每个模型生成描述
+                    description = generate_model_description(model_id)
+
+                    models.append((model_id, description))
+
+            if models:
+                return models
+            else:
+                # 如果API返回了空列表，使用默认列表
+                print("API返回空模型列表，使用默认列表")
+                return get_default_models()
+        else:
+            print(f"获取模型列表失败: {response.status_code}")
+            return get_default_models()
+
     except Exception as e:
         print(f"模型检测失败: {e}")
         return get_default_models()
 
 
+def generate_model_description(model_id: str) -> str:
+    """
+    根据模型ID生成描述
+    """
+    model_id_lower = model_id.lower()
+
+    # Claude系列
+    if "claude" in model_id_lower:
+        if "opus" in model_id_lower:
+            return f"Claude-Opus - 最高质量，适合重要章节"
+        elif "sonnet" in model_id_lower:
+            return f"Claude-Sonnet - 批判性思维，适合复杂分析"
+        elif "haiku" in model_id_lower or "sonnet-4" in model_id_lower:
+            return f"Claude-Haiku - 快速响应，适合简单任务"
+        else:
+            return f"Claude - Anthropic AI模型"
+
+    # GPT系列
+    elif "gpt-4o" in model_id_lower:
+        if "mini" in model_id_lower:
+            return f"GPT-4o-mini - 快速经济，适合简单任务"
+        else:
+            return f"GPT-4o - 平衡性能，适合大多数任务"
+    elif "gpt-4" in model_id_lower:
+        return f"GPT-4 - 高质量，适合复杂写作"
+    elif "gpt-3.5" in model_id_lower:
+        return f"GPT-3.5-Turbo - 快速经济"
+
+    # DeepSeek系列
+    elif "deepseek" in model_id_lower:
+        if "coder" in model_id_lower:
+            return f"DeepSeek-Coder - 代码生成专用"
+        else:
+            return f"DeepSeek-V3 - 经济高效"
+
+    # 其他模型
+    elif "llama" in model_id_lower or "llama" in model_id_lower:
+        return f"Llama - Meta开源模型"
+    elif "qwen" in model_id_lower or "通义" in model_id_lower:
+        return f"Qwen - 阿里通义千问"
+    elif "ERNIE" in model_id_lower or "文心" in model_id_lower:
+        return f"ERNIE - 百度文心一言"
+    else:
+        # 通用描述
+        return f"{model_id} - 可用模型"
+
+
 def get_default_models():
     """获取默认模型列表"""
     return [
-        ("GPT-4o", "GPT-4o - Balanced"),
-        ("GPT-4o-mini", "GPT-4o-mini - Fast/Economical"),
-        ("Claude-Sonnet-4.5", "Claude-Sonnet-4.5 - Critical thinking"),
-        ("Claude-Opus-4.5", "Claude-Opus-4.5 - Highest quality"),
-        ("Claude-Sonnet-4", "Claude-Sonnet-4 - Strong reasoning"),
-        ("deepseek-chat", "DeepSeek-V3 - Cost-effective"),
+        ("GPT-4o", "GPT-4o - 平衡性能，适合大多数任务"),
+        ("GPT-4o-mini", "GPT-4o-mini - 快速经济，适合简单任务"),
+        ("Claude-Sonnet-4.5", "Claude-Sonnet-4.5 - 批判性思维，适合复杂分析"),
+        ("Claude-Opus-4.5", "Claude-Opus-4.5 - 最高质量，适合重要章节"),
+        ("Claude-Sonnet-4", "Claude-Sonnet-4 - 强推理能力"),
+        ("deepseek-chat", "DeepSeek-V3 - 经济高效"),
+    ]
+
+
+def get_primary_ai_models():
+    """获取一级AI专用模型列表（推荐用于规划和质量检查）"""
+    return [
+        ("Claude-Sonnet-4.5", "Claude-Sonnet-4.5 (推荐) - 智能规划"),
+        ("Claude-Opus-4.5", "Claude-Opus-4.5 - 最高质量"),
+        ("GPT-4o", "GPT-4o - 平衡性能"),
+        ("deepseek-chat", "DeepSeek-V3 - 经济高效"),
     ]
 
 
@@ -1335,15 +1425,15 @@ with tab3:
 
         # Add primary AI model selection at the top
         st.markdown("#### 🎯 一级AI模型选择")
+
+        # 使用一级AI专用模型列表
+        primary_ai_options = get_primary_ai_models()
         primary_ai_model = st.selectbox(
             "一级AI (规划师)",
-            options=["Claude-Sonnet-4.5", "Claude-Opus-4.5", "GPT-4o", "deepseek-chat"],
-            format_func=lambda x: {
-                "Claude-Sonnet-4.5": "Claude-Sonnet-4.5 (推荐) - 智能规划",
-                "Claude-Opus-4.5": "Claude-Opus-4.5 - 最高质量",
-                "GPT-4o": "GPT-4o - 平衡性能",
-                "deepseek-chat": "DeepSeek-V3 - 经济高效",
-            }.get(x, x)
+            options=[m[0] for m in primary_ai_options],
+            format_func=lambda x: next(
+                (m[1] for m in primary_ai_options if m[0] == x), x
+            )
             or x,
             index=0,  # Default to Claude-Sonnet-4.5
             key="primary_ai_model",
@@ -1356,15 +1446,36 @@ with tab3:
         st.markdown("#### 📝 章节AI模型选择")
         st.markdown("**提示**: 不同章节可以使用不同模型，系统会自动调用相应AI")
 
+        # 模型检测和刷新按钮
+        col_refresh, col_status = st.columns([1, 3])
+
+        with col_refresh:
+            refresh_models = st.button(
+                "🔄 刷新模型列表", help="根据API配置重新检测可用模型"
+            )
+
         # Detect available models from API
-        try:
-            available_models = detect_available_models()
-            if not available_models:
-                st.warning("无法检测到可用模型，使用默认列表")
-                available_models = get_default_models()
-        except Exception as e:
-            st.warning(f"模型检测失败: {e}，使用默认列表")
-            available_models = get_default_models()
+        # 如果用户点击了刷新按钮，或者有API配置，则尝试检测模型
+        if refresh_models or (api_url and api_key):
+            with st.spinner("正在检测可用模型..."):
+                available_models = detect_available_models(api_url, api_key)
+                if available_models:
+                    st.session_state["detected_models"] = available_models
+                else:
+                    st.warning("无法检测到可用模型，使用默认列表")
+                    available_models = get_default_models()
+                    st.session_state["detected_models"] = available_models
+        else:
+            # 使用缓存的模型列表或默认列表
+            available_models = st.session_state.get(
+                "detected_models", get_default_models()
+            )
+
+        with col_status:
+            if len(available_models) > 6:
+                st.success(f"✅ 已检测到 {len(available_models)} 个可用模型")
+            else:
+                st.info(f"使用默认模型列表 ({len(available_models)} 个)")
 
         # Default model recommendations from coordinator config
         default_models = {
