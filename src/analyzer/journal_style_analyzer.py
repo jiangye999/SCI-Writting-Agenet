@@ -5,6 +5,7 @@
 
 import json
 import re
+import requests
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -345,14 +346,16 @@ class JournalStyleAnalyzer:
         ],
     }
 
-    def __init__(self, language: str = "english"):
+    def __init__(self, language: str = "english", deepseek_api_key: str = None):
         """
         初始化分析器
 
         Args:
             language: 语言 ('english' 或 'chinese')
+            deepseek_api_key: DeepSeek API密钥（用于AI章节分割）
         """
         self.language = language
+        self.deepseek_api_key = deepseek_api_key
         self.nlp = spacy.load("en_core_web_sm")
         self.stop_words = set(stopwords.words("english"))
 
@@ -1220,19 +1223,23 @@ class JournalStyleAnalyzer:
 
         return merged
 
-    def extract_text_from_pdf(self, pdf_path: Path) -> Dict[str, str]:
+    def extract_text_from_pdf(
+        self, pdf_path: Path, deepseek_api_key: str = None
+    ) -> Dict[str, str]:
         """
         从PDF或文本文件提取各章节文本
+        优先使用DeepSeek AI进行智能章节分割，失败则回退到正则表达式
 
         Args:
             pdf_path: PDF或文本文件路径
+            deepseek_api_key: DeepSeek API密钥（用于AI章节分割）
 
         Returns:
             按章节分组的文本字典
         """
-        # 直接使用pdfplumber提取文本（更可靠）
+        # 使用pdfplumber提取完整文本
         import pdfplumber
-        
+
         if pdf_path.suffix.lower() == ".pdf":
             with pdfplumber.open(pdf_path) as pdf:
                 full_text = ""
@@ -1244,20 +1251,30 @@ class JournalStyleAnalyzer:
         else:
             raise ValueError(f"不支持的文件格式: {pdf_path.suffix}")
 
-        except ImportError:
-            # 如果导入失败，回退到原始pdfplumber方法
-            import pdfplumber
+        # 如果提供了DeepSeek API密钥，尝试使用AI分割章节
+        if deepseek_api_key:
+            try:
+                sections = self._extract_sections_with_ai(full_text, deepseek_api_key)
+                if sections and sum(len(v) for v in sections.values()) > 1000:
+                    # AI分割成功，返回结果
+                    print(
+                        f"AI章节分割成功，总字符数: {sum(len(v) for v in sections.values())}"
+                    )
+                    return sections
+                else:
+                    print("AI分割结果为空，回退到正则表达式")
+            except Exception as e:
+                print(f"AI章节分割失败: {e}，回退到正则表达式")
 
-            if pdf_path.suffix.lower() == ".pdf":
-                with pdfplumber.open(pdf_path) as pdf:
-                    full_text = ""
-                    for page in pdf.pages:
-                        text = page.extract_text() or ""
-                        full_text += text + "\n"
-            elif pdf_path.suffix.lower() in [".txt", ".md"]:
-                full_text = pdf_path.read_text(encoding="utf-8")
-            else:
-                raise ValueError(f"不支持的文件格式: {pdf_path.suffix}")
+        # 回退到正则表达式方法
+        sections = {
+            "abstract": "",
+            "introduction": "",
+            "methods": "",
+            "results": "",
+            "discussion": "",
+            "conclusion": "",
+        }
 
         # 简单基于标题的分段（改进版本，支持多种格式）
         text_lower = full_text.lower()
@@ -1271,6 +1288,140 @@ class JournalStyleAnalyzer:
             "discussion": r"(?:^|\n)\s*(?:4\.?\s*|discussion)[\s:]*\n*(.+?)(?=(?:5\.?\s*|conclusion|final\s*remarks|references|acknowledgements))",
             "conclusion": r"(?:^|\n)\s*(?:5\.?\s*|conclusion|final\s*remarks|conclusions?)[\s:]*\n*(.+?)(?=\n\s*(?:references|bibliography|acknowledgements|appendix|reference\s*list|后记|致谢|$))",
         }
+
+        for section, pattern in section_patterns.items():
+            try:
+                match = re.search(pattern, text_lower, re.DOTALL | re.IGNORECASE)
+                if match:
+                    # 从原始文本中提取（保留大小写）
+                    matched_text = match.group(1).strip()
+                    # 尝试在原始文本中找到对应位置
+                    original_match = re.search(
+                        re.escape(match.group(0).lower()),
+                        full_text.lower(),
+                        re.DOTALL | re.IGNORECASE,
+                    )
+                    if original_match:
+                        sections[section] = full_text[
+                            original_match.start() : original_match.end()
+                        ].strip()
+                    else:
+                        sections[section] = matched_text
+            except Exception as e:
+                print(f"Error extracting {section}: {e}")
+                continue
+
+        return sections
+
+    def _extract_sections_with_ai(self, full_text: str, api_key: str) -> Dict[str, str]:
+        """
+        使用DeepSeek AI智能分割PDF章节
+
+        Args:
+            full_text: PDF完整文本
+            api_key: DeepSeek API密钥
+
+        Returns:
+            按章节分组的文本字典
+        """
+        # 限制文本长度（避免超出token限制）
+        max_chars = 15000
+        if len(full_text) > max_chars:
+            # 只取前15000字符 + 后2000字符（通常包含结论和参考文献）
+            truncated_text = (
+                full_text[:max_chars] + "\n\n...[truncated]...\n\n" + full_text[-2000:]
+            )
+        else:
+            truncated_text = full_text
+
+        # 构建AI提示词
+        system_prompt = """你是一个专业的学术论文结构分析助手。你的任务是准确识别并提取科学论文的各个章节内容。
+
+请提取以下6个标准章节：
+1. Abstract（摘要）
+2. Introduction（引言）
+3. Methods（方法）
+4. Results（结果）
+5. Discussion（讨论）
+6. Conclusion（结论）
+
+请严格按照以下JSON格式返回：
+```json
+{
+  "abstract": "完整的摘要内容",
+  "introduction": "完整的引言内容",
+  "methods": "完整的方法内容",
+  "results": "完整的结果内容",
+  "discussion": "完整的讨论内容",
+  "conclusion": "完整的结论内容"
+}
+```
+
+注意：
+- 每个章节要完整提取，不要截断
+- 如果某个章节不存在或无法识别，返回空字符串
+- 只返回JSON格式，不要添加其他说明
+"""
+
+        user_prompt = f"""请分析以下学术论文，提取各个章节的内容：
+
+{truncated_text}
+"""
+
+        # 调用DeepSeek API
+        url = "https://api.deepseek.com/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": "deepseek-chat",
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            "max_tokens": 4000,
+            "temperature": 0.1,
+        }
+
+        response = requests.post(url, headers=headers, json=payload, timeout=60)
+
+        if response.status_code == 200:
+            result = response.json()
+            content = result["choices"][0]["message"]["content"]
+
+            # 解析JSON响应
+            # 清理可能的markdown代码块标记
+            content = content.strip()
+            if content.startswith("```json"):
+                content = content[7:]
+            if content.startswith("```"):
+                content = content[3:]
+            if content.endswith("```"):
+                content = content[:-3]
+            content = content.strip()
+
+            try:
+                sections = json.loads(content)
+                # 确保返回字典包含所有必需的key
+                required_keys = [
+                    "abstract",
+                    "introduction",
+                    "methods",
+                    "results",
+                    "discussion",
+                    "conclusion",
+                ]
+                for key in required_keys:
+                    if key not in sections:
+                        sections[key] = ""
+                return sections
+            except json.JSONDecodeError as e:
+                print(f"JSON解析失败: {e}")
+                print(f"AI返回内容: {content[:500]}...")
+                raise ValueError("AI返回格式不正确")
+        else:
+            raise ValueError(f"DeepSeek API错误: {response.status_code}")
 
         for section, pattern in section_patterns.items():
             try:
