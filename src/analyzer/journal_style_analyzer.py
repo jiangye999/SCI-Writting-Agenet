@@ -1223,7 +1223,6 @@ class JournalStyleAnalyzer:
     def extract_text_from_pdf(self, pdf_path: Path) -> Dict[str, str]:
         """
         从PDF或文本文件提取各章节文本
-        使用SimpleDocumentParser（集成Docling）进行PDF解析
 
         Args:
             pdf_path: PDF或文本文件路径
@@ -1231,22 +1230,19 @@ class JournalStyleAnalyzer:
         Returns:
             按章节分组的文本字典
         """
-        sections = {"introduction": "", "methods": "", "results": "", "discussion": ""}
-
-        # 导入文档解析器
-        try:
-            from src.document_processor.simple_parser import SimpleDocumentParser
-
-            parser = SimpleDocumentParser()
-
-            # 使用SimpleDocumentParser解析（支持Docling）
-            if pdf_path.suffix.lower() == ".pdf":
-                # Docling会智能解析PDF，保持文档结构
-                full_text = parser.extract_full_text(str(pdf_path))
-            elif pdf_path.suffix.lower() in [".txt", ".md"]:
-                full_text = pdf_path.read_text(encoding="utf-8")
-            else:
-                raise ValueError(f"不支持的文件格式: {pdf_path.suffix}")
+        # 直接使用pdfplumber提取文本（更可靠）
+        import pdfplumber
+        
+        if pdf_path.suffix.lower() == ".pdf":
+            with pdfplumber.open(pdf_path) as pdf:
+                full_text = ""
+                for page in pdf.pages:
+                    text = page.extract_text() or ""
+                    full_text += text + "\n"
+        elif pdf_path.suffix.lower() in [".txt", ".md"]:
+            full_text = pdf_path.read_text(encoding="utf-8")
+        else:
+            raise ValueError(f"不支持的文件格式: {pdf_path.suffix}")
 
         except ImportError:
             # 如果导入失败，回退到原始pdfplumber方法
