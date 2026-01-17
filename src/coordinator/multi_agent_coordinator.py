@@ -268,33 +268,27 @@ class BaseAgent:
         section_name: str,
         skill: Dict[str, Any],
         literature_db: Any,
-        query_limit: int = 15,
+        query_limit: int = 3,
     ) -> Dict[str, List[Any]]:
-        """根据skill为每个段落搜索相关文献
+        """根据skill为每个句子搜索最相关的1-3篇文献
+
+        优先选择：
+        1. 经典论文（高引用次数）
+        2. 最新论文（最近发表）
+        3. 权威期刊论文
 
         Args:
             section_name: 章节名称
             skill: 写作skill
             literature_db: 文献数据库管理器
-            query_limit: 每个段落的搜索结果限制
+            query_limit: 每个句子的搜索结果限制（1-3篇）
 
         Returns:
-            字典：段落ID -> 相关文献列表
+            字典：句子ID -> 相关文献列表
         """
-        """根据skill为每个段落搜索相关文献
+        sentence_literature = {}
 
-        Args:
-            section_name: 章节名称
-            skill: 写作skill
-            literature_db: 文献数据库管理器
-            query_limit: 每个段落的搜索结果限制
-
-        Returns:
-            字典：段落ID -> 相关文献列表
-        """
-        paragraph_literature = {}
-
-        # 为每个段落单独搜索文献
+        # 为每个段落的每个句子搜索文献
         paragraph_details = skill.get("paragraph_details", [])
 
         for para in paragraph_details:
@@ -302,53 +296,235 @@ class BaseAgent:
             content_outline = para.get("content_outline", [])
             para_title = para.get("title", "")
 
-            # 从段落内容提取消关键词
-            para_keywords = []
+            # 为段落标题生成句子
+            title_sentences = [f"Paragraph title: {para_title}"]
 
-            # 从标题提取关键词
-            title_words = re.findall(r"\b[a-zA-Z]{4,}\b", para_title.lower())
-            para_keywords.extend(title_words)
-
-            # 从内容要点提取关键词
+            # 从内容要点生成句子
+            content_sentences = []
             for outline_point in content_outline:
-                outline_words = re.findall(r"\b[a-zA-Z]{4,}\b", outline_point.lower())
-                para_keywords.extend(outline_words)
+                # 将内容要点拆分为句子
+                sentences = re.split(r"[.!?]+", outline_point.strip())
+                content_sentences.extend([s.strip() for s in sentences if s.strip()])
 
-            # 去重并限制关键词数量
-            unique_keywords = list(set(para_keywords))[:3]  # 每个段落最多3个关键词
+            # 合并所有句子
+            all_sentences = title_sentences + content_sentences
 
-            if unique_keywords and literature_db:
-                search_query = " ".join(unique_keywords)
-                try:
-                    relevant_papers = literature_db.search_with_citekeys(
-                        query=search_query,
-                        limit=min(query_limit, 8),  # 每个段落最多8篇文献
-                    )
-                    paragraph_literature[f"para_{para_id}"] = relevant_papers
-                except Exception as e:
-                    print(f"段落 {para_id} 文献搜索失败: {e}")
-                    paragraph_literature[f"para_{para_id}"] = []
+            # 为每个句子搜索文献
+            for sent_idx, sentence in enumerate(all_sentences):
+                sentence_keywords = self._extract_sentence_keywords(sentence)
 
-        # 同时提供章节级别的文献（用于补充）
+                if sentence_keywords and literature_db:
+                    search_query = " ".join(sentence_keywords)
+                    try:
+                        # 搜索更多结果，然后按质量排序选择最好的1-3篇
+                        all_candidates = literature_db.search_with_citekeys(
+                            query=search_query,
+                            limit=10,  # 搜索10个候选，然后筛选
+                        )
+
+                        # 按质量排序并选择前1-3篇
+                        top_papers = self._rank_and_select_papers(
+                            all_candidates, query_limit
+                        )
+
+                        sentence_key = f"para_{para_id}_sent_{sent_idx}"
+                        sentence_literature[sentence_key] = top_papers
+
+                    except Exception as e:
+                        print(f"句子 '{sentence[:50]}...' 文献搜索失败: {e}")
+                        continue
+
+        # 提供章节级别的补充文献
         chapter_keywords = []
         key_messages = skill.get("key_messages", [])
-        for msg in key_messages[:2]:  # 只用前2个核心信息
+        for msg in key_messages[:2]:
             words = re.findall(r"\b[a-zA-Z]{4,}\b", msg.lower())
             chapter_keywords.extend(words)
 
         if chapter_keywords and literature_db:
-            unique_chapter_keywords = list(set(chapter_keywords))[:3]
-            search_query = " ".join(unique_chapter_keywords)
+            unique_keywords = list(set(chapter_keywords))[:3]
+            search_query = " ".join(unique_keywords)
             try:
-                chapter_papers = literature_db.search_with_citekeys(
-                    query=search_query, limit=10
+                chapter_candidates = literature_db.search_with_citekeys(
+                    query=search_query, limit=15
                 )
-                paragraph_literature["chapter_level"] = chapter_papers
+                chapter_top_papers = self._rank_and_select_papers(chapter_candidates, 8)
+                sentence_literature["chapter_supplement"] = chapter_top_papers
             except Exception as e:
-                print(f"章节级文献搜索失败: {e}")
-                paragraph_literature["chapter_level"] = []
+                print(f"章节补充文献搜索失败: {e}")
+                sentence_literature["chapter_supplement"] = []
 
-        return paragraph_literature
+        return sentence_literature
+
+    def _extract_sentence_keywords(self, sentence: str) -> List[str]:
+        """从句子中提取关键词"""
+        # 提取名词性短语和关键词
+        words = re.findall(r"\b[a-zA-Z]{4,}\b", sentence.lower())
+
+        # 过滤停用词和常见词
+        stop_words = {
+            "that",
+            "with",
+            "have",
+            "this",
+            "will",
+            "from",
+            "they",
+            "know",
+            "want",
+            "been",
+            "good",
+            "much",
+            "some",
+            "time",
+            "very",
+            "when",
+            "come",
+            "here",
+            "just",
+            "like",
+            "long",
+            "make",
+            "many",
+            "over",
+            "such",
+            "take",
+            "than",
+            "them",
+            "well",
+            "were",
+        }
+        filtered_words = [w for w in words if w not in stop_words and len(w) > 3]
+
+        # 返回前3个最重要的关键词
+        return filtered_words[:3]
+
+    def _rank_and_select_papers(self, papers: List[Any], limit: int) -> List[Any]:
+        """按质量对论文排序并选择最好的"""
+        if not papers:
+            return []
+
+        # 为每篇论文计算质量分数
+        scored_papers = []
+        for paper in papers:
+            score = self._calculate_paper_quality_score(paper)
+            scored_papers.append((score, paper))
+
+        # 按分数降序排序
+        scored_papers.sort(key=lambda x: x[0], reverse=True)
+
+        # 返回前N篇
+        return [paper for score, paper in scored_papers[:limit]]
+
+    def _calculate_paper_quality_score(self, paper: Any) -> float:
+        """计算论文质量分数
+
+        评分标准：
+        - 引用次数 (30%)
+        - 发表年份 (25%) - 越新越好
+        - 期刊影响力 (25%) - Nature, Science等顶级期刊
+        - 标题长度 (10%) - 标题太长可能质量较低
+        - 作者数量 (10%) - 适中数量的作者
+        """
+        score = 0.0
+
+        # 1. 引用次数评分 (0-30分)
+        cited_by = getattr(paper, "cited_by", 0) or 0
+        if cited_by >= 100:
+            citation_score = 30
+        elif cited_by >= 50:
+            citation_score = 25
+        elif cited_by >= 20:
+            citation_score = 20
+        elif cited_by >= 10:
+            citation_score = 15
+        elif cited_by >= 5:
+            citation_score = 10
+        elif cited_by >= 1:
+            citation_score = 5
+        else:
+            citation_score = 0
+        score += citation_score
+
+        # 2. 发表年份评分 (0-25分)
+        year = getattr(paper, "year", 0) or 0
+        current_year = 2024
+        if year >= current_year - 2:
+            year_score = 25  # 最近2年
+        elif year >= current_year - 5:
+            year_score = 20  # 最近5年
+        elif year >= current_year - 10:
+            year_score = 15  # 最近10年
+        elif year >= current_year - 20:
+            year_score = 10  # 最近20年
+        else:
+            year_score = 5  # 更早
+        score += year_score
+
+        # 3. 期刊影响力评分 (0-25分)
+        journal = getattr(paper, "journal", "").lower()
+        top_journals = {
+            "nature": 25,
+            "science": 25,
+            "cell": 24,
+            "lancet": 24,
+            "new england journal of medicine": 24,
+            "nature genetics": 23,
+            "nature medicine": 23,
+            "nature biotechnology": 23,
+            "proceedings of the national academy of sciences": 22,
+            "jama": 22,
+            "nature communications": 20,
+            "plos one": 15,
+            "scientific reports": 15,
+        }
+
+        journal_score = 0
+        for top_journal, points in top_journals.items():
+            if top_journal in journal:
+                journal_score = points
+                break
+
+        # 如果不是顶级期刊，但包含某些关键词也给分
+        if journal_score == 0:
+            if any(word in journal for word in ["nature", "science", "cell", "lancet"]):
+                journal_score = 18
+            elif any(word in journal for word in ["journal", "review", "proceedings"]):
+                journal_score = 12
+            else:
+                journal_score = 8  # 普通期刊
+
+        score += journal_score
+
+        # 4. 标题长度评分 (0-10分) - 太长可能质量较低
+        title = getattr(paper, "title", "")
+        title_length = len(title.split())
+        if title_length <= 15:
+            title_score = 10
+        elif title_length <= 20:
+            title_score = 8
+        elif title_length <= 25:
+            title_score = 6
+        else:
+            title_score = 4
+        score += title_score
+
+        # 5. 作者数量评分 (0-10分) - 适中数量的作者
+        authors = getattr(paper, "authors", "")
+        author_count = len(authors.split(";")) if authors else 1
+        if author_count == 1:
+            author_score = 8  # 单作者
+        elif 2 <= author_count <= 5:
+            author_score = 10  # 理想数量
+        elif 6 <= author_count <= 10:
+            author_score = 8  # 可接受
+        elif author_count > 10:
+            author_score = 5  # 太多作者
+        else:
+            author_score = 6
+        score += author_score
+
+        return score
 
     def _build_system_prompt(
         self, chapter_type: str, style_guide: str, context: Dict[str, Any]
