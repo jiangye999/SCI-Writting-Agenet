@@ -25,9 +25,20 @@ streamlit run app.py
 
 ### 2. 配置API
 
-在侧边栏配置API地址和密钥：
-- API URL: `http://127.0.0.1:13148/v1`
-- API Key: 你的密钥
+系统需要配置两个API服务：
+
+#### 主要模型API（模型中转站）
+- **推荐服务**: ModelGate (https://modelgate.cn)
+- **API URL**: `https://modelgate.cn/v1` 或其他模型中转站地址
+- **API Key**: 从ModelGate获取的API密钥
+- **用途**: 用于论文写作的主要AI模型调用
+
+#### DeepSeek API（可选，用于风格分析增强）
+- **API URL**: `https://api.deepseek.com/v1`
+- **API Key**: 从DeepSeek官网获取的API密钥
+- **用途**: 用于增强的期刊风格分析功能
+
+在侧边栏分别配置这两个API的地址和密钥。
 
 ### 3. 开始写作
 
@@ -47,7 +58,13 @@ streamlit run app.py
 上传目标期刊的论文范文，系统自动分析其写作风格、结构和表达偏好，生成风格指南供后续写作参考。
 
 ### Tab 2: 文献数据库管理
-从Web of Science等导出文献，导入系统建立文献库。支持多库选择，写作时自动引用相关文献。
+从Web of Science等数据库导出文献，建立文献库。
+
+**导出要求**：
+- **格式**: 必须导出为Plain Text File（纯文本文件）格式
+- **内容**: 包含完整的文献信息（标题、作者、摘要等）
+
+系统会自动解析导入的文献文件，支持多库选择，写作时自动引用相关文献。
 
 ### Tab 3: 一键写作（核心功能）
 
