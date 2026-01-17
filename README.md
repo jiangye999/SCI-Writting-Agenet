@@ -380,7 +380,8 @@ document_processing:
 - **streamlit >= 1.28.0** - Web界面框架
 - **pandas >= 1.5.0** - 数据处理
 - **python-docx >= 0.8.11** - Word文档解析
-- **PyMuPDF >= 1.23.0** - PDF处理
+- **pdfplumber >= 0.7.0** - PDF解析（回退方案）
+- **docling >= 2.0.0** - AI文档解析（IBM，精确提取PDF章节）
 - **requests >= 2.31.0** - API调用
 - **spacy >= 3.7.0** - 自然语言处理
 
