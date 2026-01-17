@@ -101,7 +101,57 @@ class SimpleDocumentParser:
         return elements
 
     def _parse_pdf(self, path: Path) -> List[DocumentElement]:
-        """解析PDF文件"""
+        """解析PDF文件 - 使用Docling智能解析"""
+        try:
+            from docling.document_converter import DocumentConverter
+
+            converter = DocumentConverter()
+            result = converter.convert(str(path))
+
+            if result.document:
+                # 使用Markdown导出，保持文档结构
+                markdown_text = result.document.export_to_markdown()
+
+                if markdown_text:
+                    elements = []
+
+                    # 按行处理Markdown文本
+                    lines = markdown_text.split("\n")
+                    for line in lines:
+                        line = line.strip()
+                        if line:
+                            # 判断是否为标题（Markdown格式）
+                            if line.startswith("#"):
+                                elem_type = "Title"
+                            elif re.match(
+                                r"^(?:\d+\.?\s*)?[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*$", line
+                            ):
+                                elem_type = "Title"
+                            else:
+                                elem_type = "Paragraph"
+
+                            elements.append(
+                                DocumentElement(
+                                    element_type=elem_type,
+                                    text=line[:5000] if len(line) > 5000 else line,
+                                    metadata={"page": 0},
+                                )
+                            )
+
+                    if elements:
+                        return elements
+
+            # 如果Docling解析失败，回退到原始方法
+            raise ValueError("Docling returned empty document")
+
+        except ImportError:
+            raise ImportError("请安装docling: pip install docling")
+        except Exception as e:
+            print(f"Docling解析失败，回退到原始方法: {e}")
+            return self._parse_pdf_fallback(path)
+
+    def _parse_pdf_fallback(self, path: Path) -> List[DocumentElement]:
+        """回退的PDF解析方法 - 使用pdfplumber"""
         try:
             import pdfplumber
 
@@ -116,12 +166,10 @@ class SimpleDocumentParser:
                     if not text.strip():
                         continue
 
-                    # 按行处理
                     lines = text.split("\n")
                     for line in lines:
                         line = line.strip()
                         if line:
-                            # 检测是否为标题
                             if re.match(
                                 r"^(?:\d+\.?\s*)?[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*$", line
                             ):
