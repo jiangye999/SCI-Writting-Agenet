@@ -1263,7 +1263,120 @@ class MultiAgentCoordinator:
                     status=AgentStatus.REJECTED,
                 )
 
+        # Step 4: 一级AI进行最终质量检查和风格调整
+        if results:
+            progress_callback(0.8, 1.0, "进行最终质量检查和风格调整", 0.8)
+            results = self._final_quality_check_and_adjust(results, context)
+
         return results
+
+    def _final_quality_check_and_adjust(
+        self, chapter_results: Dict[str, SectionResult], context: Dict[str, Any]
+    ) -> Dict[str, SectionResult]:
+        """一级AI进行最终质量检查和风格调整
+
+        Args:
+            chapter_results: 各章节的写作结果
+            context: 写作上下文
+
+        Returns:
+            调整后的章节结果
+        """
+        # 获取风格指南
+        style_guide = context.get("style_guide", "")
+
+        # 为每个章节进行质量检查和调整
+        for section_name, result in chapter_results.items():
+            if result.status != AgentStatus.COMPLETED:
+                continue
+
+            try:
+                # 检查并调整章节内容
+                adjusted_content = self._check_and_adjust_chapter_style(
+                    section_name, result.content, style_guide
+                )
+
+                # 更新结果
+                if adjusted_content != result.content:
+                    result.content = adjusted_content
+                    print(f"章节 {section_name} 经过风格调整")
+
+            except Exception as e:
+                print(f"调整章节 {section_name} 时出错: {e}")
+                continue
+
+        return chapter_results
+
+    def _check_and_adjust_chapter_style(
+        self, section_name: str, content: str, style_guide: str
+    ) -> str:
+        """检查并调整章节风格
+
+        Args:
+            section_name: 章节名称
+            content: 章节内容
+            style_guide: 风格指南
+
+        Returns:
+            调整后的内容
+        """
+        # 创建一级AI实例
+        skill_generator = SkillGeneratorAgent(
+            self.api_client, "claude-sonnet-4-20250514"
+        )
+
+        prompt = f"""你是一级AI质量检查专家。请检查以下{self._get_chinese_name(section_name)}章节内容是否符合学术期刊风格要求。
+
+## 章节内容
+{content}
+
+## 目标期刊风格指南
+{style_guide}
+
+## 检查要求
+1. **语言风格**: 是否符合学术论文的正式语气？
+2. **句子结构**: 是否使用复杂的学术句式？
+3. **词汇选择**: 是否使用领域专用术语？
+4. **表达方式**: 是否符合期刊的表达偏好？
+5. **学术规范**: 是否遵循学术写作规范？
+
+## 调整指示
+如果发现不符合风格要求的地方，请进行微调：
+- 保持原文的核心内容和逻辑结构不变
+- 只调整语言表达和风格问题
+- 确保调整后的内容更加符合期刊风格
+- 不要改变事实内容或引用
+
+## 输出要求
+如果内容已经符合风格要求，返回原文。
+如果需要调整，返回调整后的完整章节内容。
+只返回章节内容，不要其他说明。"""
+
+        # 调用AI进行检查和调整
+        adjusted_content = skill_generator._call_ai(prompt, temperature=0.3)
+
+        # 清理内容
+        adjusted_content = adjusted_content.strip()
+
+        # 如果内容基本相同，认为不需要调整
+        if self._content_similarity_check(content, adjusted_content) > 0.9:
+            return content
+
+        return adjusted_content
+
+    def _content_similarity_check(self, original: str, adjusted: str) -> float:
+        """检查内容相似度"""
+        if len(original) == 0 or len(adjusted) == 0:
+            return 0.0
+
+        # 简单相似度检查：比较共同词的数量
+        original_words = set(original.lower().split())
+        adjusted_words = set(adjusted.lower().split())
+
+        intersection = len(original_words.intersection(adjusted_words))
+        union = len(original_words.union(adjusted_words))
+
+        return intersection / union if union > 0 else 0.0
 
     def _get_chinese_name(self, section_name: str) -> str:
         """获取章节中文名"""
