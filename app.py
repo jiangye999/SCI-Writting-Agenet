@@ -62,21 +62,30 @@ def detect_available_models(api_url: str = None, api_key: str = None):
 
         if response.status_code == 200:
             data = response.json()
-            models = []
+            models_dict = {}  # 使用字典去重
 
             # 解析API返回的模型列表
             if "data" in data:
                 for model in data["data"]:
                     model_id = model.get("id", "")
-                    model_name = model.get("id", "")
+                    if model_id:  # 跳过空模型ID
+                        # 只保留每个模型ID的第一个实例
+                        if model_id not in models_dict:
+                            models_dict[model_id] = model_id
 
-                    # 为每个模型生成描述
-                    description = generate_model_description(model_id)
+            if models_dict:
+                # 去重后的模型列表
+                model_list = list(models_dict.keys())
+                # 按模型名称排序
+                model_list.sort()
 
-                    models.append((model_id, description))
+                # 生成最终的模型列表元组
+                result = []
+                for model_id in model_list:
+                    description = generate_simple_model_description(model_id)
+                    result.append((model_id, description))
 
-            if models:
-                return models
+                return result
             else:
                 # 如果API返回了空列表，使用默认列表
                 print("API返回空模型列表，使用默认列表")
@@ -90,72 +99,49 @@ def detect_available_models(api_url: str = None, api_key: str = None):
         return get_default_models()
 
 
-def generate_model_description(model_id: str) -> str:
+def generate_simple_model_description(model_id: str) -> str:
     """
-    根据模型ID生成描述
+    根据模型ID生成简化的描述
+    只给常用模型添加备注，其他只显示模型版本号
     """
     model_id_lower = model_id.lower()
 
-    # Claude系列
-    if "claude" in model_id_lower:
-        if "opus" in model_id_lower:
-            return f"Claude-Opus - 最高质量，适合重要章节"
-        elif "sonnet" in model_id_lower:
-            return f"Claude-Sonnet - 批判性思维，适合复杂分析"
-        elif "haiku" in model_id_lower or "sonnet-4" in model_id_lower:
-            return f"Claude-Haiku - 快速响应，适合简单任务"
-        else:
-            return f"Claude - Anthropic AI模型"
+    # 只给这些常用模型添加备注
+    known_models = {
+        "gpt-4o": "GPT-4o (推荐)",
+        "gpt-4o-mini": "GPT-4o-mini (快速)",
+        "gpt-4": "GPT-4",
+        "claude-sonnet-4.5": "Claude-Sonnet-4.5 (推荐)",
+        "claude-opus-4.5": "Claude-Opus-4.5 (高质量)",
+        "claude-sonnet-4": "Claude-Sonnet-4",
+        "deepseek-chat": "DeepSeek-V3",
+    }
 
-    # GPT系列
-    elif "gpt-4o" in model_id_lower:
-        if "mini" in model_id_lower:
-            return f"GPT-4o-mini - 快速经济，适合简单任务"
-        else:
-            return f"GPT-4o - 平衡性能，适合大多数任务"
-    elif "gpt-4" in model_id_lower:
-        return f"GPT-4 - 高质量，适合复杂写作"
-    elif "gpt-3.5" in model_id_lower:
-        return f"GPT-3.5-Turbo - 快速经济"
+    # 检查是否是需要添加备注的模型
+    for known_id, description in known_models.items():
+        if known_id in model_id_lower:
+            return description
 
-    # DeepSeek系列
-    elif "deepseek" in model_id_lower:
-        if "coder" in model_id_lower:
-            return f"DeepSeek-Coder - 代码生成专用"
-        else:
-            return f"DeepSeek-V3 - 经济高效"
+    # 其他模型只返回模型ID（版本号）
+    return model_id
 
-    # 其他模型
-    elif "llama" in model_id_lower or "llama" in model_id_lower:
-        return f"Llama - Meta开源模型"
-    elif "qwen" in model_id_lower or "通义" in model_id_lower:
-        return f"Qwen - 阿里通义千问"
-    elif "ERNIE" in model_id_lower or "文心" in model_id_lower:
-        return f"ERNIE - 百度文心一言"
-    else:
-        # 通用描述
-        return f"{model_id} - 可用模型"
+
+def generate_model_description(model_id: str) -> str:
+    """
+    根据模型ID生成详细描述（已弃用，请使用generate_simple_model_description）
+    """
+    return generate_simple_model_description(model_id)
 
 
 def get_default_models():
     """获取默认模型列表"""
     return [
-        ("GPT-4o", "GPT-4o - 平衡性能，适合大多数任务"),
-        ("GPT-4o-mini", "GPT-4o-mini - 快速经济，适合简单任务"),
-        ("Claude-Sonnet-4.5", "Claude-Sonnet-4.5 - 批判性思维，适合复杂分析"),
-        ("Claude-Opus-4.5", "Claude-Opus-4.5 - 最高质量，适合重要章节"),
-        ("Claude-Sonnet-4", "Claude-Sonnet-4 - 强推理能力"),
-        ("deepseek-chat", "DeepSeek-V3 - 经济高效"),
-    ]
-
-
-def get_primary_ai_models():
-    """获取一级AI专用模型列表（推荐用于规划和质量检查）"""
-    return [
-        ("Claude-Sonnet-4.5", "Claude-Sonnet-4.5 (推荐) - 智能规划"),
-        ("Claude-Opus-4.5", "Claude-Opus-4.5 - 最高质量"),
-        ("GPT-4o", "GPT-4o - 平衡性能"),
-        ("deepseek-chat", "DeepSeek-V3 - 经济高效"),
+        ("GPT-4o", "GPT-4o (推荐)"),
+        ("GPT-4o-mini", "GPT-4o-mini (快速)"),
+        ("Claude-Sonnet-4.5", "Claude-Sonnet-4.5 (推荐)"),
+        ("Claude-Opus-4.5", "Claude-Opus-4.5 (高质量)"),
+        ("Claude-Sonnet-4", "Claude-Sonnet-4"),
+        ("deepseek-chat", "DeepSeek-V3"),
     ]
 
 
@@ -1423,28 +1409,22 @@ with tab3:
         st.subheader("🤖 模型选择")
         st.markdown("**用户可为每个章节和一级AI选择不同的模型**")
 
-        # Add primary AI model selection at the top
-        st.markdown("#### 🎯 一级AI模型选择")
-
-        # 使用一级AI专用模型列表
-        primary_ai_options = get_primary_ai_models()
-        primary_ai_model = st.selectbox(
-            "一级AI (规划师)",
-            options=[m[0] for m in primary_ai_options],
-            format_func=lambda x: next(
-                (m[1] for m in primary_ai_options if m[0] == x), x
-            )
-            or x,
-            index=0,  # Default to Claude-Sonnet-4.5
-            key="primary_ai_model",
-            help="一级AI负责生成写作指导和最终质量检查",
+        # 先检测可用的模型（用于一级AI和章节AI）
+        # 先检测可用的模型（用于一级AI和章节AI）
+        # 模型检测 - 当用户输入API配置后自动检测
+        # 使用session_state跟踪是否需要重新检测
+        need_refresh = (
+            refresh_models  # 用户点击刷新按钮
+            or (
+                api_url and api_key and "detected_models" not in st.session_state
+            )  # 首次输入API
+            or (
+                api_url and api_key and st.session_state.get("last_api_url") != api_url
+            )  # API URL变化
+            or (
+                api_url and api_key and st.session_state.get("last_api_key") != api_key
+            )  # API Key变化
         )
-
-        # Update SkillGeneratorAgent model based on user selection
-        # This will be passed to the coordinator
-
-        st.markdown("#### 📝 章节AI模型选择")
-        st.markdown("**提示**: 不同章节可以使用不同模型，系统会自动调用相应AI")
 
         # 模型检测和刷新按钮
         col_refresh, col_status = st.columns([1, 3])
@@ -1455,12 +1435,13 @@ with tab3:
             )
 
         # Detect available models from API
-        # 如果用户点击了刷新按钮，或者有API配置，则尝试检测模型
-        if refresh_models or (api_url and api_key):
+        if need_refresh:
             with st.spinner("正在检测可用模型..."):
                 available_models = detect_available_models(api_url, api_key)
                 if available_models:
                     st.session_state["detected_models"] = available_models
+                    st.session_state["last_api_url"] = api_url
+                    st.session_state["last_api_key"] = api_key
                 else:
                     st.warning("无法检测到可用模型，使用默认列表")
                     available_models = get_default_models()
@@ -1476,6 +1457,24 @@ with tab3:
                 st.success(f"✅ 已检测到 {len(available_models)} 个可用模型")
             else:
                 st.info(f"使用默认模型列表 ({len(available_models)} 个)")
+
+        # 一级AI模型选择（使用检测到的模型列表）
+        st.markdown("#### 🎯 一级AI模型选择")
+        primary_ai_model = st.selectbox(
+            "一级AI (规划师)",
+            options=[m[0] for m in available_models],
+            format_func=lambda x: next((m[1] for m in available_models if m[0] == x), x)
+            or x,
+            index=0,  # Default to first model
+            key="primary_ai_model",
+            help="一级AI负责生成写作指导和最终质量检查",
+        )
+
+        # Update SkillGeneratorAgent model based on user selection
+        # This will be passed to the coordinator
+
+        st.markdown("#### 📝 章节AI模型选择")
+        st.markdown("**提示**: 不同章节可以使用不同模型，系统会自动调用相应AI")
 
         # Default model recommendations from coordinator config
         default_models = {
