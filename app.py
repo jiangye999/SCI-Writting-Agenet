@@ -1461,18 +1461,6 @@ with tab3:
                 else 0,
                 key="model_conclusion",
             )
-            model_results = st.selectbox(
-                "结果",
-                options=[m[0] for m in available_models],
-                format_func=lambda x: next(
-                    (m[1] for m in available_models if m[0] == x), x
-                ),
-                index=[m[0] for m in available_models].index(default_models["results"])
-                if default_models["results"] in [m[0] for m in available_models]
-                else 0,
-                key="model_results",
-            )
-
         with col_model2:
             model_discussion = st.selectbox(
                 "讨论",
