@@ -1282,7 +1282,7 @@ class MultiAgentCoordinator:
         Returns:
             调整后的章节结果
         """
-        # 获取风格指南
+        # 获取风格指南（可以是字典格式，每个章节对应不同的指南）
         style_guide = context.get("style_guide", "")
 
         # 为每个章节进行质量检查和调整
@@ -1291,9 +1291,14 @@ class MultiAgentCoordinator:
                 continue
 
             try:
+                # 获取对应章节的风格指南
+                chapter_style_guide = self._get_chapter_specific_style_guide(
+                    section_name, style_guide
+                )
+
                 # 检查并调整章节内容
                 adjusted_content = self._check_and_adjust_chapter_style(
-                    section_name, result.content, style_guide
+                    section_name, result.content, chapter_style_guide
                 )
 
                 # 更新结果
@@ -1306,6 +1311,71 @@ class MultiAgentCoordinator:
                 continue
 
         return chapter_results
+
+    def _get_chapter_specific_style_guide(
+        self, section_name: str, style_guide: Union[str, Dict[str, str]]
+    ) -> str:
+        """获取章节特定的风格指南
+
+        Args:
+            section_name: 章节名称
+            style_guide: 风格指南（字符串或字典）
+
+        Returns:
+            对应章节的风格指南
+        """
+        if isinstance(style_guide, dict):
+            # 如果是字典格式，直接获取对应章节的指南
+            return style_guide.get(section_name, style_guide.get("general", ""))
+        else:
+            # 如果是字符串，尝试从中提取章节特定内容
+            return self._extract_chapter_style_from_guide(section_name, style_guide)
+
+    def _extract_chapter_style_from_guide(
+        self, section_name: str, full_style_guide: str
+    ) -> str:
+        """从完整的风格指南中提取章节特定的内容
+
+        Args:
+            section_name: 章节名称
+            full_style_guide: 完整的风格指南
+
+        Returns:
+            章节特定的风格指南
+        """
+        # 章节名称映射
+        chapter_headers = {
+            "introduction": ["introduction", "引言"],
+            "methods": ["methods", "methodology", "材料和方法", "方法"],
+            "results": ["results", "findings", "结果"],
+            "discussion": ["discussion", "讨论"],
+            "conclusion": ["conclusion", "conclusions", "结论"],
+            "abstract": ["abstract", "摘要"],
+        }
+
+        # 查找章节相关的部分
+        relevant_headers = chapter_headers.get(section_name.lower(), [section_name])
+
+        # 分割风格指南为段落
+        paragraphs = full_style_guide.split("\n\n")
+
+        # 收集相关段落
+        relevant_paragraphs = []
+        for para in paragraphs:
+            para_lower = para.lower()
+            if any(header in para_lower for header in relevant_headers):
+                relevant_paragraphs.append(para)
+            # 也收集紧随其后的段落（通常包含具体指导）
+            elif relevant_paragraphs and len(relevant_paragraphs[-1].split()) < 100:
+                # 如果上一段很短，可能还有后续内容
+                relevant_paragraphs.append(para)
+                break
+
+        # 如果找到相关段落，返回它们；否则返回完整指南
+        if relevant_paragraphs:
+            return "\n\n".join(relevant_paragraphs)
+        else:
+            return full_style_guide
 
     def _check_and_adjust_chapter_style(
         self, section_name: str, content: str, style_guide: str
@@ -1325,32 +1395,39 @@ class MultiAgentCoordinator:
             self.api_client, "claude-sonnet-4-20250514"
         )
 
-        prompt = f"""你是一级AI质量检查专家。请检查以下{self._get_chinese_name(section_name)}章节内容是否符合学术期刊风格要求。
+        prompt = f"""你是一级AI质量检查专家。请严格按照对应的{self._get_chinese_name(section_name)}章节风格指南，检查以下章节内容是否符合要求。
 
 ## 章节内容
 {content}
 
-## 目标期刊风格指南
+## 对应的章节风格指南（严格遵循）
 {style_guide}
 
-## 检查要求
-1. **语言风格**: 是否符合学术论文的正式语气？
-2. **句子结构**: 是否使用复杂的学术句式？
-3. **词汇选择**: 是否使用领域专用术语？
-4. **表达方式**: 是否符合期刊的表达偏好？
-5. **学术规范**: 是否遵循学术写作规范？
+## 检查要求（基于章节特定风格指南）
+1. **语言风格**: 是否符合该章节在风格指南中描述的语言特点和语气？
+2. **句子结构**: 是否符合该章节推荐的句子结构模式？
+3. **词汇选择**: 是否使用了风格指南中推荐的领域术语和表达？
+4. **表达方式**: 是否符合该章节的具体表达偏好和写作习惯？
+5. **学术规范**: 是否遵循该章节的特定学术写作规范？
+
+## 检查原则
+- **严格对照**: 必须基于提供的章节风格指南进行检查
+- **章节特定**: 不同章节可能有不同的风格要求
+- **全面覆盖**: 检查指南中提到的所有相关方面
+- **精准匹配**: 确保内容符合指南的具体描述
 
 ## 调整指示
-如果发现不符合风格要求的地方，请进行微调：
-- 保持原文的核心内容和逻辑结构不变
-- 只调整语言表达和风格问题
-- 确保调整后的内容更加符合期刊风格
-- 不要改变事实内容或引用
+如果发现不符合章节风格指南要求的地方：
+- 严格按照指南进行调整，确保符合该章节的具体要求
+- 保持原文的核心内容、逻辑结构和引用不变
+- 只调整语言表达、风格和表达方式
+- 确保调整后的内容完全符合该章节的风格指南
+- 不要改变事实内容、数据或引用
 
 ## 输出要求
-如果内容已经符合风格要求，返回原文。
+如果内容已经完全符合章节风格指南，返回原文。
 如果需要调整，返回调整后的完整章节内容。
-只返回章节内容，不要其他说明。"""
+只返回章节内容，不要其他说明或解释。"""
 
         # 调用AI进行检查和调整
         adjusted_content = skill_generator._call_ai(prompt, temperature=0.3)
