@@ -154,16 +154,25 @@ class BaseAgent:
         citation_type = citation_style.get("citation_type", "author-year")
         latex_command = citation_style.get("latex_citation_command", "\\citep")
 
+        # 根据章节类型确定引用要求
+        citation_requirement = self._get_citation_requirement(chapter_type)
+
         prompt = f"""You are an academic writing expert specializing in {chapter_type} sections.
 
-## CRITICAL OUTPUT REQUIREMENT: LaTeX Format
-You MUST output your content in LaTeX format suitable for academic publication.
+## CRITICAL OUTPUT REQUIREMENTS
+- **OUTPUT FORMAT: LaTeX** - You MUST output in LaTeX format suitable for academic publication
+- **CITATION STYLE**: {citation_type} format using LaTeX commands
+- **CITATION COMMAND**: {latex_command}{{citekey}} (e.g., {latex_command}{{Zhang2025}})
+- **CITATION RULE**: {citation_requirement}
+- **LANGUAGE**: Formal academic English
+- **STRUCTURE**: Follow academic paper conventions for {chapter_type} sections
 
-## Citation Style Requirements
-- Citation type: {citation_type}
-- Use LaTeX citation command: {latex_command}{{citekey}}
-- Example: {latex_command}{{Zhang2025}}
-- **EVERY sentence that references external work MUST include a citation**
+## CITATION GUIDELINES
+- Read each literature's ABSTRACT carefully before citing
+- Only cite papers whose findings/methods directly support your statements
+- Use the most relevant citekey based on the paper's actual content
+- Each citation must have a clear connection to the cited paper's abstract
+- Avoid generic citations - each citation should serve a specific purpose
 
 ## Writing Style Guide
 {style_guide}
@@ -176,17 +185,34 @@ You MUST output your content in LaTeX format suitable for academic publication.
 
 ## Task Requirements
 Write a high-quality academic {chapter_type} section that:
-1. Follows the style guide above
-2. Uses formal academic language
-3. **STRICTLY USES citekey CITATIONS ONLY from the provided literature**
-4. Maintains logical flow and coherence
-5. Uses proper academic structure
+1. Uses LaTeX formatting (\\section{{Title}}, \\subsection{{Title}}, etc.)
+2. Follows the style guide above exactly
+3. Uses formal academic language and terminology
+4. {citation_requirement.replace("EVERY sentence", "EVERY factual statement").replace("ONLY cite", "ONLY cite from")}
+5. Maintains logical flow and coherence
+6. Uses proper academic structure and transitions
 
 ## AVAILABLE LITERATURE (citekeys, bibtex, abstracts)
 {context.get("literature_references", "No literature available - write without citations")}
 
-Please write the {chapter_type} section in LaTeX format. Output only the section content without any additional explanation."""
+**IMPORTANT**: Output ONLY the LaTeX-formatted section content. Do NOT include any explanations, markdown, or additional text."""
         return prompt
+
+    def _get_citation_requirement(self, chapter_type: str) -> str:
+        """根据章节类型返回引用要求"""
+        citation_rules = {
+            "introduction": "EVERY sentence containing factual claims, previous research, or background information MUST include a citation from the provided literature database",
+            "discussion": "EVERY sentence comparing results with existing literature, discussing implications, or referencing previous studies MUST include a citation",
+            "conclusion": "EVERY sentence referencing broader implications, future directions, or summarizing key findings with literature support MUST include a citation",
+            "abstract": "Include citations only for specific findings or methods that require literature support",
+            "methods": "ONLY cite established methods, protocols, or standards from the literature database - do not cite for basic/common procedures",
+            "results": "ONLY cite statistical methods, analysis techniques, or comparative standards - do not cite for presenting your own findings",
+            "materials": "ONLY cite established methods, protocols, or standards from the literature database - do not cite for basic/common procedures",
+        }
+
+        return citation_rules.get(
+            chapter_type.lower(), "Cite relevant literature when appropriate"
+        )
 
     def _call_ai(self, prompt: str, temperature: float = 0.7) -> str:
         """Call AI model"""
@@ -285,17 +311,19 @@ class IntroductionAgent(BaseAgent):
 Write an Introduction section that follows this structure:
 
 \subsection{{Background and Context}}
-2-3 paragraphs establishing the research field and context. Every factual claim MUST be cited.
+2-3 paragraphs establishing the research field and context. EVERY factual claim about previous research MUST be cited with relevant literature.
 
 \subsection{{Problem Statement and Research Gap}}
-1-2 paragraphs identifying the gap in current knowledge. All claims MUST cite relevant literature.
+1-2 paragraphs identifying the gap in current knowledge. EVERY claim about existing knowledge or gaps MUST cite relevant literature.
 
 \subsection{{Research Objectives and Significance}}
-1 paragraph stating your objectives and the significance of this study. Cite foundational work.
+1 paragraph stating your objectives and the significance of this study. Cite foundational work that supports your research importance.
 
-Use \\citep{{citekey}} for parenthetical citations and \\citet{{citekey}} for narrative citations.
-**Every sentence containing information from external sources MUST be cited.**
-**Use ONLY the citekeys from the literature database provided above.**
+## CITATION REQUIREMENTS FOR INTRODUCTION
+- **EVERY sentence** that mentions previous research, existing knowledge, or background information **MUST cite relevant literature**
+- Read each paper's ABSTRACT to find the most appropriate citation
+- Cite specific findings or methods from the literature that directly relate to your topic
+- Use citations to establish credibility and context for your research
 
 Write in English, following academic conventions. Output LaTeX code only."""
 
@@ -341,17 +369,20 @@ List all materials, equipment, and reagents used.
 
 \subsection{{Experimental Design and Procedures}}
 Detail the study design, group allocation, and experimental procedures.
-Use past tense throughout. Cite established methods.
+Use past tense throughout. Cite established methods only when describing non-standard protocols.
 
 \subsection{{Data Collection Methods}}
 Explain how data was collected and measured.
 
 \subsection{{Statistical Analysis}}
-Describe statistical methods used. Cite standard methods and software.
+Describe statistical methods used. Cite standard methods and software packages.
 
-Use \\citep{{citekey}} for citations. Cite methodological papers where appropriate.
-**Cite established methods and protocols from the literature database.**
-**Use ONLY the citekeys provided above.**
+## CITATION REQUIREMENTS FOR METHODS
+- **ONLY cite established protocols, methods, or standards from literature**
+- **Do NOT cite for basic/common procedures** (e.g., don't cite for "we used SPSS software")
+- **Cite ONLY when referencing specific methodological papers** that describe techniques you followed
+- **Cite location-specific studies** only if they provide unique contextual information
+- Read abstracts to ensure citations are for actual methodological references, not just general topics
 
 Write in English, using past tense. Output LaTeX code only."""
 
@@ -394,7 +425,7 @@ Present your primary findings in logical order. Use past tense for describing wh
 
 \subsection{{Statistical Outcomes}}
 Report all statistical tests, p-values, confidence intervals, and effect sizes.
-Cite statistical methods used.
+Cite statistical methods or analysis techniques if they are non-standard.
 
 \subsection{{Figures and Tables}}
 Reference all figures and tables using \\ref{{fig:label}} and \\tabref{{tab:label}}.
@@ -402,9 +433,12 @@ Reference all figures and tables using \\ref{{fig:label}} and \\tabref{{tab:labe
 \subsection{{Comparison with Previous Studies}}
 Where relevant, compare your findings with previous research. Cite relevant literature.
 
-Use \\citep{{citekey}} for comparisons with existing literature.
-**Cite statistical methods and compare with relevant literature from the database.**
-**Use ONLY the citekeys provided above.**
+## CITATION REQUIREMENTS FOR RESULTS
+- **ONLY cite statistical methods** if referencing specific analytical techniques from literature
+- **ONLY cite comparative standards** when your results need to be contextualized against established benchmarks
+- **Do NOT cite for presenting your own data/findings**
+- **Cite sparingly** - results sections should focus on your data, not literature review
+- Read abstracts to ensure citations support specific analytical or comparative claims
 
 Write in English, presenting factual information. Output LaTeX code only."""
 
@@ -439,25 +473,28 @@ class DiscussionAgent(BaseAgent):
 Write a Discussion section that includes:
 
 \subsection{{Summary of Key Findings}}
-Briefly restate your main findings (1 paragraph). No citations needed here.
+Briefly restate your main findings (1 paragraph). Focus on your results - minimal citations.
 
 \subsection{{Interpretation and Comparison with Existing Literature}}
 2-3 paragraphs comparing your results with previous studies.
-**EVERY comparison MUST cite the relevant literature using citekeys.**
+**EVERY comparison, interpretation, or reference to existing work MUST cite relevant literature.**
 
 \subsection{{Theoretical and Practical Implications}}
 1-2 paragraphs discussing implications of your findings.
-Cite theoretical frameworks and related work.
+Cite theoretical frameworks and related work that support your interpretations.
 
 \subsection{{Study Limitations}}
-1 paragraph acknowledging limitations. Cite methodological papers if relevant.
+1 paragraph acknowledging limitations. Cite methodological papers that discuss similar limitations.
 
 \subsection{{Future Research Directions}}
-1 paragraph suggesting future research directions. Cite gaps identified in literature.
+1 paragraph suggesting future research directions. Cite literature that identifies gaps or suggests future work.
 
-Use \\citep{{citekey}} for all comparisons and theoretical discussions.
-**CRITICAL: Cite extensively when comparing with existing literature.**
-**Use ONLY the citekeys from the literature database provided above.**
+## CITATION REQUIREMENTS FOR DISCUSSION
+- **EVERY sentence** that compares your results with existing literature MUST cite relevant papers
+- **EVERY sentence** that discusses implications or theoretical frameworks MUST cite supporting literature
+- **EVERY sentence** that suggests future directions MUST cite literature identifying gaps
+- Read abstracts carefully - only cite papers whose findings directly relate to your discussion points
+- Use multiple citations when discussing complex topics that span several studies
 
 Write in English, using critical analytical thinking. Output LaTeX code only."""
 
@@ -501,12 +538,15 @@ Write a comprehensive abstract (200-300 words) that includes:
 \subsection*{Conclusions}
 1-2 sentences stating main conclusions and implications.
 
+## CITATION REQUIREMENTS FOR ABSTRACT
+- **Most journals discourage citations in abstracts**
+- **ONLY cite if absolutely essential** for establishing context or specific findings
+- **Cite sparingly** - prefer to describe work without references
+- If citing, ensure the citation is crucial and directly supports a key claim
+
 \section*{Abstract}
 
 Write your abstract here in LaTeX format...
-
-**IMPORTANT: Most journals do not permit citations in the abstract.**
-**If background information is essential, cite it, but minimize citations in abstract.**
 
 Write in English, using formal academic language. Output LaTeX code only."""
 
@@ -540,19 +580,22 @@ class ConclusionAgent(BaseAgent):
 Write a Conclusion section that:
 
 \subsection*{Main Findings}
-1 paragraph restating your main findings concisely. No citations needed.
+1 paragraph restating your main findings concisely. Focus on your contributions.
 
 \subsection*{Implications}
 1 paragraph discussing the broader implications of your study.
-Cite theoretical foundations if relevant.
+Cite theoretical foundations or literature that supports your claims about significance.
 
 \subsection*{Future Research Directions}
 1 paragraph suggesting future research directions.
-Cite gaps in the literature and emerging questions.
+Cite literature that identifies gaps or suggests directions relevant to your work.
 
-Use \\citep{citekey} for theoretical frameworks and future research recommendations.
-**Minimize citations in conclusions - focus on your contributions.**
-**Use ONLY citekeys from the literature database when citing external work.**
+## CITATION REQUIREMENTS FOR CONCLUSION
+- **Cite ONLY when discussing broader implications that require literature support**
+- **Cite ONLY when suggesting future directions that build on existing literature**
+- **Do NOT cite for restating your own findings**
+- Read abstracts to ensure citations are directly relevant to your conclusion points
+- Use citations sparingly - conclusions should focus on your work's contributions
 
 Write in English, providing a strong closing to the paper. Output LaTeX code only."""
 

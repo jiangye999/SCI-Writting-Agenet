@@ -429,11 +429,22 @@ class JournalStyleAnalyzer:
                     r"(?:^|\n)\s*5\.?\s*(?:conclusion|conclusions|summary)[\s.]*$",
                 ],
                 "end_patterns": [
-                    r"(?:^|\n)\s*(?:\d+\.?\s*)?(?:references?|bibliography|acknowledgements)",
-                    r"(?:^|\n)\s*(?:\[\d+\]\s*)?references?",
-                    r"(?:^|\n)\s*acknowledgements?",
-                    r"(?:^|\n)\s*appendix",
-                    r"(?:^|\n)\s*supplementary",
+                    # 优先级最高的截断模式 - 各种references写法
+                    r"(?:^|\n)\s*(?:\d+\.?\s*)?(?:references?|bibliography|reference\s*list|cited\s*references?)[\s:]*",
+                    r"(?:^|\n)\s*\[\d+\]\s*(?:references?|bibliography|reference)",
+                    r"(?:^|\n)\s*(?:the\s+)?references?\s*(?:\[:\]|\[::\]|$)",
+                    r"(?:^|\n)\s*(?:the\s+)?bibliography\b",
+                    r"(?:^|\n)\s*acknowledgements?\b",
+                    r"(?:^|\n)\s*appendix\b",
+                    r"(?:^|\n)\s*supplementary\s*(?:material|information|files?)\b",
+                    # 中文模式
+                    r"(?:^|\n)\s*参考文献\b",
+                    r"(?:^|\n)\s*致谢\b",
+                    r"(?:^|\n)\s*附录\b",
+                    # 严格的单行模式
+                    r"^references?\s*$",
+                    r"^reference\s+list\s*$",
+                    r"^bibliography\s*$",
                 ],
             },
             "acknowledgements": {
@@ -1345,8 +1356,8 @@ class JournalStyleAnalyzer:
                     found_ref = True
                     break
 
-            # 如果还是太长（超过5000字符），尝试找最后一个段落
-            if not found_ref and len(conclusion_text) > 5000:
+            # 如果还是太长（超过2000字符），尝试找最后一个段落
+            if not found_ref and len(conclusion_text) > 2000:
                 # 找到最后一个完整段落
                 paragraphs = conclusion_text.split("\n\n")
                 # 移除最后一个可能是reference的段落
