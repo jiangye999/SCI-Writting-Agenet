@@ -40,7 +40,8 @@ class SimpleDocumentParser:
         "introduction": r"(?i)(?:^|\n)\s*(?:1\s*\.?|introduction|background)[\s:]*(.+?)",
         "methods": r"(?i)(?:^|\n)\s*(?:2\s*\.?|methods|materials and methods|methodology)[\s:]*(.+?)",
         "results": r"(?i)(?:^|\n)\s*(?:3\s*\.?|results|findings)[\s:]*(.+?)",
-        "discussion": r"(?i)(?:^|\n)\s*(?:4\s*\.?|discussion|conclusion)[\s:]*(.+?)",
+        "discussion": r"(?i)(?:^|\n)\s*(?:4\s*\.?|discussion)[\s:]*(.+?)",
+        "conclusion": r"(?i)(?:^|\n)\s*(?:5\s*\.?|conclusion|conclusions)[\s:]*(.+?)",
         "references": r"(?i)(?:^|\n)\s*(?:references|bibliography)[\s:]*",
     }
 
