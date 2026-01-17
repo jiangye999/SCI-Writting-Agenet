@@ -38,6 +38,37 @@ from literature import create_literature_database, LiteratureDatabaseManager
 # from coordinator import MultiAgentCoordinator  # 暂时注释掉
 # from integrator import DraftIntegrator  # 暂时注释掉
 
+
+def detect_available_models():
+    """检测用户中转站可用的模型列表"""
+    try:
+        # 这里可以实现检测逻辑
+        # 暂时返回常用模型列表
+        return [
+            ("GPT-4o", "GPT-4o - 平衡性能，适合大多数任务"),
+            ("GPT-4o-mini", "GPT-4o-mini - 快速经济，适合简单任务"),
+            ("Claude-Sonnet-4.5", "Claude-Sonnet-4.5 - 批判性思维，适合复杂分析"),
+            ("Claude-Opus-4.5", "Claude-Opus-4.5 - 最高质量，适合重要章节"),
+            ("Claude-Sonnet-4", "Claude-Sonnet-4 - 强推理能力"),
+            ("deepseek-chat", "DeepSeek-V3 - 经济高效"),
+        ]
+    except Exception as e:
+        print(f"模型检测失败: {e}")
+        return get_default_models()
+
+
+def get_default_models():
+    """获取默认模型列表"""
+    return [
+        ("GPT-4o", "GPT-4o - Balanced"),
+        ("GPT-4o-mini", "GPT-4o-mini - Fast/Economical"),
+        ("Claude-Sonnet-4.5", "Claude-Sonnet-4.5 - Critical thinking"),
+        ("Claude-Opus-4.5", "Claude-Opus-4.5 - Highest quality"),
+        ("Claude-Sonnet-4", "Claude-Sonnet-4 - Strong reasoning"),
+        ("deepseek-chat", "DeepSeek-V3 - Cost-effective"),
+    ]
+
+
 # 标题
 st.title("📝 论文写作助手")
 st.markdown("基于AI的多代理学术论文写作系统")
@@ -1300,23 +1331,40 @@ with tab3:
     with col_model:
         # Model selection for each section
         st.subheader("🤖 模型选择")
-        st.markdown("为每个章节选择合适的模型")
+        st.markdown("**用户可为每个章节和一级AI选择不同的模型**")
 
-        # Define available models with descriptions
-        available_models = [
-            ("GPT-4o", "GPT-4o - Balanced"),
-            ("GPT-4o-mini", "GPT-4o-mini - Fast/Economical"),
-            (
-                "Claude-Sonnet-4.5",
-                "Claude-Sonnet-4.5 - Critical thinking",
-            ),
-            (
-                "Claude-Opus-4.5",
-                "Claude-Opus-4.5 - Highest quality",
-            ),
-            ("Claude-Sonnet-4", "Claude-Sonnet-4 - Strong reasoning"),
-            ("deepseek-chat", "DeepSeek-V3 - Cost-effective"),
-        ]
+        # Add primary AI model selection at the top
+        st.markdown("#### 🎯 一级AI模型选择")
+        primary_ai_model = st.selectbox(
+            "一级AI (规划师)",
+            options=["Claude-Sonnet-4.5", "Claude-Opus-4.5", "GPT-4o", "deepseek-chat"],
+            format_func=lambda x: {
+                "Claude-Sonnet-4.5": "Claude-Sonnet-4.5 (推荐) - 智能规划",
+                "Claude-Opus-4.5": "Claude-Opus-4.5 - 最高质量",
+                "GPT-4o": "GPT-4o - 平衡性能",
+                "deepseek-chat": "DeepSeek-V3 - 经济高效",
+            }.get(x, x)
+            or x,
+            index=0,  # Default to Claude-Sonnet-4.5
+            key="primary_ai_model",
+            help="一级AI负责生成写作指导和最终质量检查",
+        )
+
+        # Update SkillGeneratorAgent model based on user selection
+        # This will be passed to the coordinator
+
+        st.markdown("#### 📝 章节AI模型选择")
+        st.markdown("**提示**: 不同章节可以使用不同模型，系统会自动调用相应AI")
+
+        # Detect available models from API
+        try:
+            available_models = detect_available_models()
+            if not available_models:
+                st.warning("无法检测到可用模型，使用默认列表")
+                available_models = get_default_models()
+        except Exception as e:
+            st.warning(f"模型检测失败: {e}，使用默认列表")
+            available_models = get_default_models()
 
         # Default model recommendations from coordinator config
         default_models = {
@@ -1338,10 +1386,13 @@ with tab3:
                 options=[m[0] for m in available_models],
                 format_func=lambda x: next(
                     (m[1] for m in available_models if m[0] == x), x
-                ),
+                )
+                or x,
                 index=[m[0] for m in available_models].index(
                     default_models["introduction"]
-                ),
+                )
+                if default_models["introduction"] in [m[0] for m in available_models]
+                else 0,
                 key="model_intro",
             )
             model_methods = st.selectbox(
@@ -1349,8 +1400,11 @@ with tab3:
                 options=[m[0] for m in available_models],
                 format_func=lambda x: next(
                     (m[1] for m in available_models if m[0] == x), x
-                ),
-                index=[m[0] for m in available_models].index(default_models["methods"]),
+                )
+                or x,
+                index=[m[0] for m in available_models].index(default_models["methods"])
+                if default_models["methods"] in [m[0] for m in available_models]
+                else 0,
                 key="model_methods",
             )
             model_results = st.selectbox(
@@ -1358,8 +1412,64 @@ with tab3:
                 options=[m[0] for m in available_models],
                 format_func=lambda x: next(
                     (m[1] for m in available_models if m[0] == x), x
+                )
+                or x,
+                index=[m[0] for m in available_models].index(default_models["results"])
+                if default_models["results"] in [m[0] for m in available_models]
+                else 0,
+                key="model_results",
+            )
+
+        with col_model2:
+            model_discussion = st.selectbox(
+                "讨论",
+                options=[m[0] for m in available_models],
+                format_func=lambda x: next(
+                    (m[1] for m in available_models if m[0] == x), x
+                )
+                or x,
+                index=[m[0] for m in available_models].index(
+                    default_models["discussion"]
+                )
+                if default_models["discussion"] in [m[0] for m in available_models]
+                else 0,
+                key="model_discussion",
+            )
+            model_abstract = st.selectbox(
+                "摘要",
+                options=[m[0] for m in available_models],
+                format_func=lambda x: next(
+                    (m[1] for m in available_models if m[0] == x), x
+                )
+                or x,
+                index=[m[0] for m in available_models].index(default_models["abstract"])
+                if default_models["abstract"] in [m[0] for m in available_models]
+                else 0,
+                key="model_abstract",
+            )
+            model_conclusion = st.selectbox(
+                "结论",
+                options=[m[0] for m in available_models],
+                format_func=lambda x: next(
+                    (m[1] for m in available_models if m[0] == x), x
+                )
+                or x,
+                index=[m[0] for m in available_models].index(
+                    default_models["conclusion"]
+                )
+                if default_models["conclusion"] in [m[0] for m in available_models]
+                else 0,
+                key="model_conclusion",
+            )
+            model_results = st.selectbox(
+                "结果",
+                options=[m[0] for m in available_models],
+                format_func=lambda x: next(
+                    (m[1] for m in available_models if m[0] == x), x
                 ),
-                index=[m[0] for m in available_models].index(default_models["results"]),
+                index=[m[0] for m in available_models].index(default_models["results"])
+                if default_models["results"] in [m[0] for m in available_models]
+                else 0,
                 key="model_results",
             )
 
@@ -1372,7 +1482,9 @@ with tab3:
                 ),
                 index=[m[0] for m in available_models].index(
                     default_models["discussion"]
-                ),
+                )
+                if default_models["discussion"] in [m[0] for m in available_models]
+                else 0,
                 key="model_discussion",
             )
             model_abstract = st.selectbox(
@@ -1381,9 +1493,9 @@ with tab3:
                 format_func=lambda x: next(
                     (m[1] for m in available_models if m[0] == x), x
                 ),
-                index=[m[0] for m in available_models].index(
-                    default_models["abstract"]
-                ),
+                index=[m[0] for m in available_models].index(default_models["abstract"])
+                if default_models["abstract"] in [m[0] for m in available_models]
+                else 0,
                 key="model_abstract",
             )
             model_conclusion = st.selectbox(
@@ -1394,7 +1506,9 @@ with tab3:
                 ),
                 index=[m[0] for m in available_models].index(
                     default_models["conclusion"]
-                ),
+                )
+                if default_models["conclusion"] in [m[0] for m in available_models]
+                else 0,
                 key="model_conclusion",
             )
 

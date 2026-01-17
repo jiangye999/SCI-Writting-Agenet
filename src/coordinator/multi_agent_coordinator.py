@@ -1068,7 +1068,11 @@ class MultiAgentCoordinator:
     """Coordinator for managing multiple writing agents"""
 
     def __init__(
-        self, base_url: str, api_key: str, model_config: Optional[Dict[str, str]] = None
+        self,
+        base_url: str,
+        api_key: str,
+        model_config: Optional[Dict[str, str]] = None,
+        primary_ai_model: str = "claude-sonnet-4-20250514",
     ):
         self.api_client = APIClient(base_url, api_key)
 
@@ -1080,6 +1084,9 @@ class MultiAgentCoordinator:
             }
         else:
             self.model_config = model_config
+
+        # Primary AI model for skill generation and quality check
+        self.primary_ai_model = primary_ai_model
 
         # Agent registry
         self.agent_registry = {
@@ -1150,9 +1157,7 @@ class MultiAgentCoordinator:
         current_step = 0
 
         # 初始化一级AI（skill生成器）
-        skill_generator = SkillGeneratorAgent(
-            self.api_client, "claude-sonnet-4-20250514"
-        )
+        skill_generator = SkillGeneratorAgent(self.api_client, self.primary_ai_model)
 
         # 获取风格指南和研究内容
         style_guide = context.get("style_guide", "")
