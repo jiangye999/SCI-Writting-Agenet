@@ -26,6 +26,7 @@ streamlit>=1.28.0
 # Document Processing - 文档处理
 pdfplumber>=0.7.0
 python-docx>=1.1.0
+docling>=2.0.0  # AI文档解析（IBM），用于精确提取PDF章节
 
 # Testing - 测试（可选）
 pytest>=7.0.0
