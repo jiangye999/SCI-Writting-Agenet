@@ -424,12 +424,15 @@ with tab1:
                         else:
                             st.warning("⚠️ skill文件不存在，将使用传统分析")
                             result = analyze_journal_style(
-                                papers_dir, "output/style", journal_name
+                                papers_dir,
+                                "output/style",
+                                journal_name,
+                                deepseek_api_key,
                             )
                     else:
                         # 使用传统分析
                         result = analyze_journal_style(
-                            papers_dir, "output/style", journal_name
+                            papers_dir, "output/style", journal_name, deepseek_api_key
                         )
 
                     status_text.text("完成！")

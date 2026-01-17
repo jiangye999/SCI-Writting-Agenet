@@ -2426,7 +2426,10 @@ Subordinating: if, when, although (conditional procedures)
 
 
 def analyze_journal_style(
-    papers_dir: str, output_dir: str, journal_name: str = "Target Journal"
+    papers_dir: str,
+    output_dir: str,
+    journal_name: str = "Target Journal",
+    deepseek_api_key: str = None,
 ) -> Dict[str, str]:
     """
     分析期刊风格的便捷函数
@@ -2435,6 +2438,7 @@ def analyze_journal_style(
         papers_dir: 包含PDF论文的目录
         output_dir: 输出目录
         journal_name: 期刊名称
+        deepseek_api_key: DeepSeek API密钥（用于AI章节分割）
 
     Returns:
         输出文件路径字典
@@ -2449,7 +2453,7 @@ def analyze_journal_style(
     if not paper_paths:
         raise ValueError(f"在 {papers_dir} 中未找到PDF/TXT/MD文件")
 
-    analyzer = JournalStyleAnalyzer()
+    analyzer = JournalStyleAnalyzer(deepseek_api_key=deepseek_api_key)
     report = analyzer.analyze_papers(paper_paths, journal_name)
 
     return analyzer.save_report_and_guides(report, output_dir)
