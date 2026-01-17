@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 import requests
 
 
@@ -268,42 +268,87 @@ class BaseAgent:
         section_name: str,
         skill: Dict[str, Any],
         literature_db: Any,
-        query_limit: int = 10,
-    ) -> List[Any]:
-        """根据skill搜索相关文献
+        query_limit: int = 15,
+    ) -> Dict[str, List[Any]]:
+        """根据skill为每个段落搜索相关文献
 
         Args:
             section_name: 章节名称
             skill: 写作skill
             literature_db: 文献数据库管理器
-            query_limit: 搜索结果限制
+            query_limit: 每个段落的搜索结果限制
 
         Returns:
-            相关文献列表
+            字典：段落ID -> 相关文献列表
         """
-        # 从skill中提取关键词
+        """根据skill为每个段落搜索相关文献
+
+        Args:
+            section_name: 章节名称
+            skill: 写作skill
+            literature_db: 文献数据库管理器
+            query_limit: 每个段落的搜索结果限制
+
+        Returns:
+            字典：段落ID -> 相关文献列表
+        """
+        paragraph_literature = {}
+
+        # 为每个段落单独搜索文献
+        paragraph_details = skill.get("paragraph_details", [])
+
+        for para in paragraph_details:
+            para_id = para.get("paragraph_id")
+            content_outline = para.get("content_outline", [])
+            para_title = para.get("title", "")
+
+            # 从段落内容提取消关键词
+            para_keywords = []
+
+            # 从标题提取关键词
+            title_words = re.findall(r"\b[a-zA-Z]{4,}\b", para_title.lower())
+            para_keywords.extend(title_words)
+
+            # 从内容要点提取关键词
+            for outline_point in content_outline:
+                outline_words = re.findall(r"\b[a-zA-Z]{4,}\b", outline_point.lower())
+                para_keywords.extend(outline_words)
+
+            # 去重并限制关键词数量
+            unique_keywords = list(set(para_keywords))[:3]  # 每个段落最多3个关键词
+
+            if unique_keywords and literature_db:
+                search_query = " ".join(unique_keywords)
+                try:
+                    relevant_papers = literature_db.search_with_citekeys(
+                        query=search_query,
+                        limit=min(query_limit, 8),  # 每个段落最多8篇文献
+                    )
+                    paragraph_literature[f"para_{para_id}"] = relevant_papers
+                except Exception as e:
+                    print(f"段落 {para_id} 文献搜索失败: {e}")
+                    paragraph_literature[f"para_{para_id}"] = []
+
+        # 同时提供章节级别的文献（用于补充）
+        chapter_keywords = []
         key_messages = skill.get("key_messages", [])
-        content_keywords = []
-
-        for msg in key_messages:
-            # 提取关键词
+        for msg in key_messages[:2]:  # 只用前2个核心信息
             words = re.findall(r"\b[a-zA-Z]{4,}\b", msg.lower())
-            content_keywords.extend(words)
+            chapter_keywords.extend(words)
 
-        # 去重并构建搜索查询
-        unique_keywords = list(set(content_keywords))[:5]  # 最多5个关键词
-
-        if unique_keywords:
-            search_query = " ".join(unique_keywords)
+        if chapter_keywords and literature_db:
+            unique_chapter_keywords = list(set(chapter_keywords))[:3]
+            search_query = " ".join(unique_chapter_keywords)
             try:
-                relevant_papers = literature_db.search_with_citekeys(
-                    query=search_query, limit=query_limit
+                chapter_papers = literature_db.search_with_citekeys(
+                    query=search_query, limit=10
                 )
-                return relevant_papers
+                paragraph_literature["chapter_level"] = chapter_papers
             except Exception as e:
-                print(f"文献搜索失败: {e}")
+                print(f"章节级文献搜索失败: {e}")
+                paragraph_literature["chapter_level"] = []
 
-        return []
+        return paragraph_literature
 
     def _build_system_prompt(
         self, chapter_type: str, style_guide: str, context: Dict[str, Any]
@@ -386,13 +431,15 @@ Write a high-quality academic {chapter_type} section that:
         return content.strip()
 
     def _format_literature_for_prompt(
-        self, literature: List[Any], reference_format: str = "nature"
+        self,
+        literature: Union[List[Any], Dict[str, List[Any]]],
+        reference_format: str = "nature",
     ) -> str:
         """
         Format literature for the prompt with citekey, bibtex, and abstract
 
         Args:
-            literature: List of Paper objects
+            literature: List of Paper objects or Dict of paragraph->papers
             reference_format: Reference format for BibTeX
 
         Returns:
@@ -400,6 +447,13 @@ Write a high-quality academic {chapter_type} section that:
         """
         if not literature:
             return "No literature available - write without citations"
+
+        # 如果输入是字典（按段落分组的文献），将其合并为一个列表
+        if isinstance(literature, dict):
+            all_papers = []
+            for para_papers in literature.values():
+                all_papers.extend(para_papers)
+            literature = all_papers
 
         formatted_refs = []
         for paper in literature:
@@ -941,12 +995,28 @@ class MultiAgentCoordinator:
                 model = self.model_config.get(section_name, DEFAULT_MODEL)
                 writing_agent = writing_agent_class(self.api_client, model)
 
-                # 根据skill搜索相关文献
-                relevant_literature = []
+                # 根据skill搜索相关文献（按段落）
+                relevant_literature_dict = {}
                 if literature_db and skill:
-                    relevant_literature = writing_agent.search_relevant_literature(
+                    relevant_literature_dict = writing_agent.search_relevant_literature(
                         section_name, skill, literature_db, query_limit=15
                     )
+
+                # 将所有段落的文献合并为一个列表
+                relevant_literature = []
+                for para_key, papers in relevant_literature_dict.items():
+                    relevant_literature.extend(papers)
+
+                # 去重（避免同一篇文献被多次引用）
+                seen_ids = set()
+                unique_literature = []
+                for paper in relevant_literature:
+                    paper_id = getattr(
+                        paper, "id", getattr(paper, "wos_id", str(paper))
+                    )
+                    if paper_id not in seen_ids:
+                        unique_literature.append(paper)
+                        seen_ids.add(paper_id)
 
                 # 更新上下文，包含skill和相关文献
                 writing_context = context.copy()
