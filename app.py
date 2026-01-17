@@ -1410,9 +1410,18 @@ with tab3:
         st.markdown("**用户可为每个章节和一级AI选择不同的模型**")
 
         # 先检测可用的模型（用于一级AI和章节AI）
-        # 先检测可用的模型（用于一级AI和章节AI）
         # 模型检测 - 当用户输入API配置后自动检测
         # 使用session_state跟踪是否需要重新检测
+
+        # 模型检测和刷新按钮（必须先定义，才能在条件中使用）
+        col_refresh, col_status = st.columns([1, 3])
+
+        with col_refresh:
+            refresh_models = st.button(
+                "🔄 刷新模型列表", help="根据API配置重新检测可用模型"
+            )
+
+        # 判断是否需要重新检测模型
         need_refresh = (
             refresh_models  # 用户点击刷新按钮
             or (
@@ -1425,14 +1434,6 @@ with tab3:
                 api_url and api_key and st.session_state.get("last_api_key") != api_key
             )  # API Key变化
         )
-
-        # 模型检测和刷新按钮
-        col_refresh, col_status = st.columns([1, 3])
-
-        with col_refresh:
-            refresh_models = st.button(
-                "🔄 刷新模型列表", help="根据API配置重新检测可用模型"
-            )
 
         # Detect available models from API
         if need_refresh:
