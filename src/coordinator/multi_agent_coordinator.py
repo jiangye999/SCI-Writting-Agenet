@@ -173,6 +173,10 @@ class SkillGeneratorAgent(BaseAgent):
 ### 4. 写作目标：
 为二级AI提供完整的写作指导，包括结构、内容要点、写作思路等。
 
+## 重要提醒
+生成skill时，必须在"execution_instructions"字段中明确指示二级AI：
+同时参照此skill文件和对应的章节风格提取文件进行写作。
+
 ## Skill输出格式（严格遵循）
 
 请以JSON格式输出，包含以下字段：
@@ -207,6 +211,13 @@ class SkillGeneratorAgent(BaseAgent):
     "types": ["引用类型"],
     "relevance_criteria": "相关性标准"
   }},
+  "execution_instructions": [
+    "同时参照此skill文件和对应的{section_name}章节风格提取文件进行写作",
+    "skill文件提供具体写作结构和要点",
+    "风格提取文件提供写作风格、语言特点和表达偏好",
+    "将两种指导有机结合，确保内容和风格的双重符合",
+    "优先遵循skill的结构要求，在此基础上应用风格指南的语言规范"
+  ],
   "quality_checkpoints": ["质量检查点1", "质量检查点2", ...],
   "common_pitfalls": ["常见错误1", "常见错误2", ...]
 }}
@@ -217,6 +228,7 @@ class SkillGeneratorAgent(BaseAgent):
 - 结合期刊风格指南，提供具体写作指导
 - 确保结构合理，逻辑清晰
 - 提供可操作的写作步骤
+- 必须包含execution_instructions，明确要求参照两个文件
 
 输出纯JSON，不要其他内容。"""
 
@@ -683,7 +695,7 @@ class IntroductionAgent(BaseAgent):
     def write_section_with_skill(
         self, context: Dict[str, Any], skill: Dict[str, Any]
     ) -> str:
-        """根据skill写作Introduction章节"""
+        """根据skill写作Introduction章节，同时参照风格指南"""
         style_guide = context.get("style_guide", "")
         literature = context.get("literature", [])
         citation_style = context.get("citation_style", {})
@@ -698,16 +710,30 @@ class IntroductionAgent(BaseAgent):
         prompt = self._build_system_prompt("introduction", style_guide, context)
         prompt += f"""
 
-## WRITING SKILL GUIDANCE
+## WRITING SKILL GUIDANCE (PRIMARY REFERENCE)
 {json.dumps(skill, ensure_ascii=False, indent=2)}
 
-## EXECUTION INSTRUCTIONS
-Follow the skill guidance precisely:
-1. Use the specified paragraph structure and count
-2. Cover all key messages and content outlines
-3. Apply the rhetorical strategy and writing approach
-4. Follow citation requirements exactly
-5. Ensure word count is appropriate
+## EXECUTION INSTRUCTIONS (MANDATORY)
+You MUST simultaneously reference BOTH files for writing:
+
+### 1. SKILL FILE REFERENCE (结构和内容指导):
+- Follow the paragraph structure and count specified in skill
+- Cover all key messages and content outlines from skill
+- Apply the rhetorical strategy and writing approach from skill
+- Follow citation requirements exactly as specified in skill
+- Ensure word count matches the estimates in skill
+
+### 2. STYLE GUIDE REFERENCE (语言风格指导):
+- Apply the writing style, tone, and language patterns from the style guide above
+- Use vocabulary and expressions that match the journal's preferences
+- Follow sentence structure patterns from the style guide
+- Maintain the academic tone and formality level shown in the style guide
+
+### 3. INTEGRATION APPROACH:
+- Use skill file as the PRIMARY guide for WHAT to write (content structure)
+- Use style guide as the PRIMARY guide for HOW to write (language style)
+- Combine both seamlessly - content from skill, expression from style guide
+- Prioritize skill's structural requirements while applying style guide's language norms
 
 ## AVAILABLE LITERATURE FOR CITATION
 {literature_references}
