@@ -1072,7 +1072,7 @@ class JournalStyleAnalyzer:
         passive_ratios = []
 
         for paper_path in paper_paths:
-            sections = self.extract_text_from_pdf(paper_path)
+            sections = self.extract_text_from_pdf(paper_path, self.deepseek_api_key)
 
             for section, text in sections.items():
                 if not text.strip():
@@ -1980,7 +1980,7 @@ class JournalStyleAnalyzer:
         passive_ratios = []
 
         for paper_path in paper_paths:
-            sections = self.extract_text_from_pdf(paper_path)
+            sections = self.extract_text_from_pdf(paper_path, self.deepseek_api_key)
 
             for section, text in sections.items():
                 if not text.strip():
