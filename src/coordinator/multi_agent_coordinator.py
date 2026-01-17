@@ -132,6 +132,109 @@ class APIClient:
             raise Exception(f"API调用失败: {str(e)}")
 
 
+class SkillGeneratorAgent(BaseAgent):
+    """一级AI：生成详细的写作skill指导"""
+
+    def __init__(self, api_client: APIClient, model: str = "claude-sonnet-4-20250514"):
+        super().__init__("SkillGeneratorAgent", api_client, model)
+
+    def generate_skill(
+        self,
+        section_name: str,
+        context: Dict[str, Any],
+        style_guide: str,
+        research_content: str,
+    ) -> Dict[str, Any]:
+        """生成章节写作skill
+
+        Args:
+            section_name: 章节名称
+            context: 写作上下文
+            style_guide: 风格指南
+            research_content: 用户研究内容
+
+        Returns:
+            skill字典，包含分段、架构等详细指导
+        """
+
+        prompt = f"""你是一级AI写作指导专家，专门为学术论文各章节生成详细的写作skill。
+
+## 任务要求
+基于以下信息，为"{section_name}"章节生成详细的写作skill：
+
+## 输入信息
+### 1. 章节类型：{section_name}
+### 2. 目标期刊风格指南：
+{style_guide}
+
+### 3. 用户研究内容：
+{research_content}
+
+### 4. 写作目标：
+为二级AI提供完整的写作指导，包括结构、内容要点、写作思路等。
+
+## Skill输出格式（严格遵循）
+
+请以JSON格式输出，包含以下字段：
+
+```json
+{{
+  "section_name": "{section_name}",
+  "overall_structure": {{
+    "paragraph_count": "建议的段落数量",
+    "main_sections": ["主要部分1", "主要部分2", ...],
+    "transition_strategy": "段落间过渡策略"
+  }},
+  "paragraph_details": [
+    {{
+      "paragraph_id": 1,
+      "title": "段落标题",
+      "purpose": "段落目的",
+      "content_outline": ["要点1", "要点2", ...],
+      "writing_approach": "写作思路和方法",
+      "citation_strategy": "引用策略",
+      "word_count_estimate": "字数估算"
+    }},
+    {{
+      "paragraph_id": 2,
+      ...
+    }}
+  ],
+  "key_messages": ["核心信息点1", "核心信息点2", ...],
+  "rhetorical_strategy": "修辞策略",
+  "citation_requirements": {{
+    "frequency": "引用频率",
+    "types": ["引用类型"],
+    "relevance_criteria": "相关性标准"
+  }},
+  "quality_checkpoints": ["质量检查点1", "质量检查点2", ...],
+  "common_pitfalls": ["常见错误1", "常见错误2", ...]
+}}
+```
+
+## 要求
+- 详细分析用户研究内容，提取相关要点
+- 结合期刊风格指南，提供具体写作指导
+- 确保结构合理，逻辑清晰
+- 提供可操作的写作步骤
+
+输出纯JSON，不要其他内容。"""
+
+        response = self._call_ai(prompt, temperature=0.3)  # 低温度确保一致性
+
+        try:
+            # 清理响应，只保留JSON部分
+            json_start = response.find("{")
+            json_end = response.rfind("}") + 1
+            if json_start != -1 and json_end > json_start:
+                json_content = response[json_start:json_end]
+                skill = json.loads(json_content)
+                return skill
+        except Exception as e:
+            print(f"解析skill JSON失败: {e}")
+            return self._generate_default_skill(section_name, context)
+
+
 class BaseAgent:
     """Base class for all writing agents with LaTeX output support"""
 
@@ -143,7 +246,64 @@ class BaseAgent:
     def write_section(
         self, context: Dict[str, Any], requirements: Dict[str, Any]
     ) -> str:
+        """传统写作方法（兼容旧代码）"""
+        return self.write_section_with_skill(context, {})
+
+    def write_section_with_skill(
+        self, context: Dict[str, Any], skill: Dict[str, Any]
+    ) -> str:
+        """根据skill进行写作（新方法）
+
+        Args:
+            context: 写作上下文
+            skill: 一级AI生成的写作skill
+
+        Returns:
+            生成的章节内容
+        """
         raise NotImplementedError
+
+    def search_relevant_literature(
+        self,
+        section_name: str,
+        skill: Dict[str, Any],
+        literature_db: Any,
+        query_limit: int = 10,
+    ) -> List[Any]:
+        """根据skill搜索相关文献
+
+        Args:
+            section_name: 章节名称
+            skill: 写作skill
+            literature_db: 文献数据库管理器
+            query_limit: 搜索结果限制
+
+        Returns:
+            相关文献列表
+        """
+        # 从skill中提取关键词
+        key_messages = skill.get("key_messages", [])
+        content_keywords = []
+
+        for msg in key_messages:
+            # 提取关键词
+            words = re.findall(r"\b[a-zA-Z]{4,}\b", msg.lower())
+            content_keywords.extend(words)
+
+        # 去重并构建搜索查询
+        unique_keywords = list(set(content_keywords))[:5]  # 最多5个关键词
+
+        if unique_keywords:
+            search_query = " ".join(unique_keywords)
+            try:
+                relevant_papers = literature_db.search_with_citekeys(
+                    query=search_query, limit=query_limit
+                )
+                return relevant_papers
+            except Exception as e:
+                print(f"文献搜索失败: {e}")
+
+        return []
 
     def _build_system_prompt(
         self, chapter_type: str, style_guide: str, context: Dict[str, Any]
@@ -290,9 +450,10 @@ class IntroductionAgent(BaseAgent):
     def __init__(self, api_client: APIClient, model: str = "gpt-4o"):
         super().__init__("IntroductionAgent", api_client, model)
 
-    def write_section(
-        self, context: Dict[str, Any], requirements: Dict[str, Any]
+    def write_section_with_skill(
+        self, context: Dict[str, Any], skill: Dict[str, Any]
     ) -> str:
+        """根据skill写作Introduction章节"""
         style_guide = context.get("style_guide", "")
         literature = context.get("literature", [])
         citation_style = context.get("citation_style", {})
@@ -304,31 +465,33 @@ class IntroductionAgent(BaseAgent):
         )
         context["literature_references"] = literature_references
 
-        prompt = self._build_system_prompt("Introduction", style_guide, context)
+        prompt = self._build_system_prompt("introduction", style_guide, context)
         prompt += f"""
 
-## Introduction Structure
-Write an Introduction section that follows this structure:
+## WRITING SKILL GUIDANCE
+{json.dumps(skill, ensure_ascii=False, indent=2)}
 
-\subsection{{Background and Context}}
-2-3 paragraphs establishing the research field and context. EVERY factual claim about previous research MUST be cited with relevant literature.
+## EXECUTION INSTRUCTIONS
+Follow the skill guidance precisely:
+1. Use the specified paragraph structure and count
+2. Cover all key messages and content outlines
+3. Apply the rhetorical strategy and writing approach
+4. Follow citation requirements exactly
+5. Ensure word count is appropriate
 
-\subsection{{Problem Statement and Research Gap}}
-1-2 paragraphs identifying the gap in current knowledge. EVERY claim about existing knowledge or gaps MUST cite relevant literature.
+## AVAILABLE LITERATURE FOR CITATION
+{literature_references}
 
-\subsection{{Research Objectives and Significance}}
-1 paragraph stating your objectives and the significance of this study. Cite foundational work that supports your research importance.
-
-## CITATION REQUIREMENTS FOR INTRODUCTION
-- **EVERY sentence** that mentions previous research, existing knowledge, or background information **MUST cite relevant literature**
-- Read each paper's ABSTRACT to find the most appropriate citation
-- Cite specific findings or methods from the literature that directly relate to your topic
-- Use citations to establish credibility and context for your research
-
-Write in English, following academic conventions. Output LaTeX code only."""
+Output the complete Introduction section in LaTeX format."""
 
         content = self._call_ai(prompt, temperature=0.7)
         return self._clean_content(content)
+
+    def write_section(
+        self, context: Dict[str, Any], requirements: Dict[str, Any]
+    ) -> str:
+        # 兼容旧代码：如果没有skill，使用传统方法
+        return self.write_section_with_skill(context, {})
 
 
 class MethodsAgent(BaseAgent):
@@ -693,6 +856,154 @@ class MultiAgentCoordinator:
                 return match.group(0).strip()
 
         return "Follow standard academic writing conventions for this section."
+
+    def run_two_level_workflow(
+        self,
+        context: Dict[str, Any],
+        progress_callback=None,
+        sections: Optional[List[str]] = None,
+        literature_db=None,
+    ) -> Dict[str, SectionResult]:
+        """运行两级AI写作工作流
+
+        一级AI：生成详细写作skill
+        二级AI：根据skill搜索文献并写作
+
+        Args:
+            context: 写作上下文（包含style_guide, research_content等）
+            progress_callback: 进度回调函数
+            sections: 要生成的章节列表
+            literature_db: 文献数据库管理器
+
+        Returns:
+            各章节的写作结果
+        """
+        results = {}
+
+        # 获取用户选择的章节
+        if sections is None:
+            sections = [
+                "introduction",
+                "methods",
+                "results",
+                "discussion",
+                "conclusion",
+            ]
+
+        total_steps = len(sections) * 2  # 每个章节需要skill生成和写作两个步骤
+        current_step = 0
+
+        # 初始化一级AI（skill生成器）
+        skill_generator = SkillGeneratorAgent(
+            self.api_client, "claude-sonnet-4-20250514"
+        )
+
+        # 获取风格指南和研究内容
+        style_guide = context.get("style_guide", "")
+        research_content = (
+            context.get("background", "") + "\n" + context.get("results_data", "")
+        )
+
+        for section_name in sections:
+            if progress_callback:
+                progress_callback(
+                    current_step + 1,
+                    total_steps,
+                    f"生成{self._get_chinese_name(section_name)}skill",
+                    0.1,
+                )
+            current_step += 1
+
+            try:
+                # 第一步：一级AI生成skill
+                skill = skill_generator.generate_skill(
+                    section_name=section_name,
+                    context=context,
+                    style_guide=style_guide,
+                    research_content=research_content,
+                )
+
+                if progress_callback:
+                    progress_callback(
+                        current_step + 1,
+                        total_steps,
+                        f"根据skill写作{self._get_chinese_name(section_name)}",
+                        0.1,
+                    )
+                current_step += 1
+
+                # 第二步：二级AI根据skill写作
+                # 获取对应的写作Agent
+                writing_agent_class = self.agent_registry.get(section_name)
+                if not writing_agent_class:
+                    continue
+
+                model = self.model_config.get(section_name, DEFAULT_MODEL)
+                writing_agent = writing_agent_class(self.api_client, model)
+
+                # 根据skill搜索相关文献
+                relevant_literature = []
+                if literature_db and skill:
+                    relevant_literature = writing_agent.search_relevant_literature(
+                        section_name, skill, literature_db, query_limit=15
+                    )
+
+                # 更新上下文，包含skill和相关文献
+                writing_context = context.copy()
+                writing_context["skill"] = skill
+                writing_context["literature"] = relevant_literature
+
+                # 执行写作
+                content = writing_agent.write_section_with_skill(writing_context, skill)
+
+                # 计算结果
+                word_count = len(content.split())
+                citations = self._extract_citations(content)
+                quality_score = self._calculate_quitation_quality_score(
+                    content, section_name
+                )
+
+                results[section_name] = SectionResult(
+                    section_name=section_name,
+                    content=content,
+                    word_count=word_count,
+                    citations_used=citations,
+                    quality_score=quality_score,
+                    status=AgentStatus.COMPLETED,
+                )
+
+                if progress_callback:
+                    progress_callback(
+                        current_step,
+                        total_steps,
+                        f"{self._get_chinese_name(section_name)}完成",
+                        1.0,
+                    )
+
+            except Exception as e:
+                print(f"处理章节 {section_name} 时出错: {e}")
+                results[section_name] = SectionResult(
+                    section_name=section_name,
+                    content="",
+                    word_count=0,
+                    citations_used=[],
+                    quality_score=0.0,
+                    status=AgentStatus.REJECTED,
+                )
+
+        return results
+
+    def _get_chinese_name(self, section_name: str) -> str:
+        """获取章节中文名"""
+        names = {
+            "introduction": "引言",
+            "methods": "方法",
+            "results": "结果",
+            "discussion": "讨论",
+            "abstract": "摘要",
+            "conclusion": "结论",
+        }
+        return names.get(section_name, section_name)
 
     def run_workflow(
         self,

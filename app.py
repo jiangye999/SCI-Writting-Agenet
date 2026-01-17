@@ -1798,14 +1798,28 @@ This guide provides detailed writing instructions for each section of papers pub
                         "selected_sections", None
                     )
 
-                    # Step 3-8: Run coordinator workflow
-                    status_area.text("正在运行AI写作流程...")
+                    # Step 3-8: Run two-level AI workflow
+                    status_area.text("正在运行两级AI写作流程...")
                     progress_bar.progress(15)
 
-                    results = coordinator.run_workflow(
+                    # 加载文献数据库用于动态搜索
+                    literature_db = None
+                    if selected_db_names_tab3:
+                        try:
+                            from literature import LiteratureDatabaseManager
+
+                            # 使用第一个数据库作为主要搜索库
+                            db_path = f"output/{selected_db_names_tab3[0]}.db"
+                            if os.path.exists(db_path):
+                                literature_db = LiteratureDatabaseManager(db_path)
+                        except Exception as e:
+                            log_messages.append(f"⚠ 文献数据库加载失败: {e}")
+
+                    results = coordinator.run_two_level_workflow(
                         context=context,
                         progress_callback=progress_callback,
                         sections=selected_sections,
+                        literature_db=literature_db,
                     )
 
                     # Save sections
