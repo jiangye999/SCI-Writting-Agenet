@@ -141,7 +141,7 @@ class MultiAgentCoordinator:
     ├─► Tab 1: 范文风格分析
     │       │
     │       ▼
-    │   风格分析器 → output/style/
+    │   风格分析器 → output/style/ (风格指南)
     │
     ├─► Tab 2: 文献数据库
     │       │
@@ -226,6 +226,8 @@ paper_writer/
 │   └── model_router/
 │       └── model_router.py
 ├── input/                          # 输入目录
+├── sample_papers/                  # 风格分析范文（PDF论文）
+├── literature_exports/             # Web of Science文献导出
 ├── output/                         # 输出目录
 │   ├── style/                      # 风格分析结果
 │   │   ├── style_summary.md

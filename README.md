@@ -104,6 +104,8 @@ paper_writer/
 ├── input/                          # 输入文件目录
 │   ├── sample_papers/              # 范文样本
 │   └── background.md               # 研究背景
+├── sample_papers/                  # 风格分析范文
+├── literature_exports/             # Web of Science文献导出
 ├── output/                         # 输出文件目录
 │   ├── style/                      # 风格分析结果
 │   ├── sections/                   # 各章节草稿
