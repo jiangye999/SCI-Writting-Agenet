@@ -259,12 +259,18 @@ python -m spacy download en_core_web_sm
 编辑 `config/config.yaml`：
 
 ```yaml
+# 主要模型API配置（用于论文写作）
 api:
-  base_url: "http://127.0.0.1:13148/v1"  # API代理地址
-  api_key: ""                             # API密钥
+  base_url: "https://modelgate.cn/v1"      # ModelGate或其他模型中转站地址
+  api_key: "your_modelgate_api_key"        # ModelGate API密钥
 
+# DeepSeek API配置（用于风格分析增强，可选）
+deepseek:
+  base_url: "https://api.deepseek.com/v1"  # DeepSeek API地址
+  api_key: "your_deepseek_api_key"         # DeepSeek API密钥
+
+# 各章节默认模型配置
 models:
-  # 各章节默认模型配置
   introduction: "GPT-4o"
   methods: "GPT-4o"
   results: "GPT-4o"
@@ -272,6 +278,7 @@ models:
   abstract: "GPT-4o"
   conclusion: "Claude-Sonnet-4.5"
 
+# 文档处理配置
 document_processing:
   max_image_size: "2048x2048"
   table_analysis_limit: 100
@@ -402,6 +409,7 @@ python -m spacy download en_core_web_sm  # NLP模型
 
 ## 📞 技术支持
 
+- **邮箱**: sjs@cau.edu.cn
 - **GitHub**: https://github.com/jiangye999/SCI-Writting-Agenet
 - **Issues**: 欢迎提交问题和建议
 - **PR**: 欢迎贡献代码改进
