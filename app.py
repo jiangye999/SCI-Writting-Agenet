@@ -1102,14 +1102,14 @@ with tab3:
         """)
 
         # Download template button
-        template_path = "研究内容模板.md"
+        template_path = "research_content_template.md"
         if os.path.exists(template_path):
             with open(template_path, "r", encoding="utf-8") as f:
                 template_content = f.read()
             st.download_button(
                 label="📥 下载研究内容模板",
                 data=template_content,
-                file_name="研究内容模板.md",
+                file_name="research_content_template.md",
                 mime="text/markdown",
                 help="下载模板文档，按照模板结构整理您的研究内容",
                 key="download_template",

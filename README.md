@@ -34,7 +34,7 @@ streamlit run app.py
 1. **Tab 1**: 上传目标期刊范文（可选，用于分析期刊风格）
 2. **Tab 2**: 导入文献库（可选，用于自动引用）
 3. **Tab 3**: 
-   - 下载研究内容模板
+   - 下载研究内容模板 (research_content_template.md)
    - 按模板整理研究内容到一个Word文档
    - 上传Word文档并解析
    - 选择文献库
@@ -82,7 +82,7 @@ streamlit run app.py
 ```
 paper_writer/
 ├── app.py                          # Streamlit网页界面
-├── 研究内容模板.md                  # 研究内容整理模板
+├── research_content_template.md      # 研究内容整理模板
 ├── config/
 │   └── config.yaml                 # 配置文件
 ├── src/
@@ -154,7 +154,7 @@ document_processing:
 
 ## 💡 使用建议
 
-1. **研究内容整理**: 下载「研究内容模板.md」，按模板结构整理所有研究内容到一个Word文档
+1. **研究内容整理**: 下载「research_content_template.md」，按模板结构整理所有研究内容到一个Word文档
 2. **图表处理**: 将数据表格和图表直接粘贴到Word文档中，系统会自动提取分析
 3. **模型选择**:
    - 结构化内容（引言、方法、结果、摘要）→ GPT-4o

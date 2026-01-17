@@ -90,7 +90,7 @@ class MultiAgentCoordinator:
 
 ### 5. 研究内容模板
 
-创建 `研究内容模板.md`，包含：
+创建 `research_content_template.md`，包含：
 
 ```
 1. 研究背景
@@ -202,7 +202,7 @@ class MultiAgentCoordinator:
 ```
 paper_writer/
 ├── app.py                          # Streamlit网页界面（主入口）
-├── 研究内容模板.md                  # 研究内容整理模板
+├── research_content_template.md      # 研究内容整理模板
 ├── README.md                       # 项目说明
 ├── README_WEBUI.md                 # 网页界面使用指南
 ├── config/
