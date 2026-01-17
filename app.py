@@ -1461,45 +1461,6 @@ with tab3:
                 else 0,
                 key="model_conclusion",
             )
-        with col_model2:
-            model_discussion = st.selectbox(
-                "讨论",
-                options=[m[0] for m in available_models],
-                format_func=lambda x: next(
-                    (m[1] for m in available_models if m[0] == x), x
-                ),
-                index=[m[0] for m in available_models].index(
-                    default_models["discussion"]
-                )
-                if default_models["discussion"] in [m[0] for m in available_models]
-                else 0,
-                key="model_discussion",
-            )
-            model_abstract = st.selectbox(
-                "摘要",
-                options=[m[0] for m in available_models],
-                format_func=lambda x: next(
-                    (m[1] for m in available_models if m[0] == x), x
-                ),
-                index=[m[0] for m in available_models].index(default_models["abstract"])
-                if default_models["abstract"] in [m[0] for m in available_models]
-                else 0,
-                key="model_abstract",
-            )
-            model_conclusion = st.selectbox(
-                "结论",
-                options=[m[0] for m in available_models],
-                format_func=lambda x: next(
-                    (m[1] for m in available_models if m[0] == x), x
-                ),
-                index=[m[0] for m in available_models].index(
-                    default_models["conclusion"]
-                )
-                if default_models["conclusion"] in [m[0] for m in available_models]
-                else 0,
-                key="model_conclusion",
-            )
-
         # Configuration summary
         st.caption(f"""
         **当前配置：**
